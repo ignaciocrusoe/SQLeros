@@ -23,16 +23,26 @@ CREATE TABLE SQLeros.Inmueble(
 	inm_suerficie VARCHAR(50),
 	inm_anio VARCHAR(50),
 	inm_expensas VARCHAR(50),
-	inm_wifi BIT,
-	inm_cable BIT,
-	inm_calefaccion BIT,
-	inm_gas BIT,
 	inm_ubicacion INT,
 	inm_tipo INT,
 	inm_ambientes INT,
 	inm_orientacion INT,
 	inm_disposicion INT,
 	inm_estado INT,
+	inm_caracteristicas INT
+)
+GO
+
+CREATE TABLE SQLeros.CaracteristicaInmueble(
+	caracteristicainmueble_codigo INT PRIMARY KEY,
+	caracteristicainmueble_descripcion VARCHAR(10)
+)
+GO
+
+CREATE TABLE SQLeros. CaracteristicaInmueblePorInmueble(
+	caracteristicainmuebleporinmueble_inmueble INT,
+	caracteristicainmuebleporinmueble_caracteristica INT,
+	CONSTRAINT CaracteristicaInmueblePorInmueblePK PRIMARY KEY (caracteristicainmuebleporinmueble_inmueble, caracteristicainmuebleporinmueble_caracteristica)
 )
 GO
 
@@ -191,7 +201,7 @@ GO
 
 CREATE TABLE SQLeros.Ambientes(
 	ambientes_codigo INT PRIMARY KEY,
-	ambientes_cantidad INT(10)
+	ambientes_cantidad INT
 )
 GO
 

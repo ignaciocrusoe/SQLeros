@@ -104,3 +104,99 @@ CREATE TABLE SQLeros.PagoAlquiler(
 	pagoalq_medio INT
 )
 GO
+
+CREATE TABLE SQLeros.MedioDePago(
+	medio_codigo INT PRIMARY KEY,
+	medio_nombre VARCHAR(10),
+	medio_descripcion VARCHAR(100)
+)
+GO
+
+CREATE TABLE SQLeros.Venta(
+	 venta_codigo INT PRIMARY KEY,
+	 venta_comprador INT,
+	 venta_anuncio INT,
+	 venta_fecha SMALLDATETIME,
+	 venta_precio DECIMAL(12,2),
+	 venta_comision DECIMAL(12,2),
+	 venta_moneda INT
+)
+GO
+
+CREATE TABLE SQLeros.PagoVenta(
+	pagoventa_codigo INT PRIMARY KEY,
+	pagoventa_venta INT,
+	pagoventa_importe DECIMAL(12,2),
+	pagoventa_moneda INT,
+	pagoventa_cotizacion DECIMAL(12,2),
+	pagoventa_medio INT
+)
+GO
+
+CREATE TABLE SQLeros.EstadoAnuncio(
+	estadoanuncio_codigo INT PRIMARY KEY,
+	estadoanuncio_descripcion VARCHAR(10)
+)
+GO
+
+CREATE TABLE SQLeros.TipoOperacion(
+	tipooperacion_codigo INT PRIMARY KEY,
+	tipooperacion_descripcion VARCHAR(10)
+)
+GO
+
+CREATE TABLE SQLeros.Barrio(
+	barrio_codigo INT PRIMARY KEY,
+	barrio_descripcion VARCHAR(20)
+)
+GO
+
+CREATE TABLE SQLeros.Localidad(
+	localidad_codigo INT PRIMARY KEY,
+	localidad_descripcion VARCHAR(20)
+)
+GO
+
+CREATE TABLE SQLeros.Provincia(
+	provincia_codigo INT PRIMARY KEY,
+	provincia_descripcion VARCHAR(20)
+)
+GO
+
+CREATE TABLE SQLeros.Ubicacion(
+	ubicacion_codigo INT PRIMARY KEY,
+	ubicacion_barrio INT,
+	ubicacion_localidad INT,
+	ubicacion_provincia INT
+)
+GO
+
+CREATE TABLE SQLeros.EstadoInmueble(
+	estadoinmueble_codigo INT PRIMARY KEY,
+	estadoinmueble_descripcion VARCHAR(10)
+)
+GO
+
+CREATE TABLE SQLeros.Disposicion(
+	disposicion_codigo INT PRIMARY KEY,
+	disposicion_descripcion VARCHAR(10)
+)
+GO
+
+CREATE TABLE SQLeros.Orientacion(
+	orientacion_codigo INT PRIMARY KEY,
+	orientacion_descripcion VARCHAR(10)
+)
+GO
+
+CREATE TABLE SQLeros.Ambientes(
+	ambientes_codigo INT PRIMARY KEY,
+	ambientes_cantidad INT(10)
+)
+GO
+
+CREATE TABLE SQLeros.TipoInmueble(
+	tipoinmueble_codigo INT PRIMARY KEY,
+	tipoinmueble_descripcion VARCHAR(10)
+)
+GO

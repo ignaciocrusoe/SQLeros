@@ -86,7 +86,7 @@ DROP TABLE SQLeros.TipoInmueble;
 
 -- Creo la tabla Persona porque hay que almacenar los mismos datos para un propietario o inquilino
 CREATE TABLE SQLeros.Persona(
-	pers_codigo INT PRIMARY KEY,
+	pers_codigo INT IDENTITY PRIMARY KEY,
 	pers_nombre VARCHAR(50),
 	pers_apellido VARCHAR(50),
 	pers_dni CHAR(8),
@@ -98,7 +98,7 @@ CREATE TABLE SQLeros.Persona(
 GO
 
 CREATE TABLE SQLeros.Inmueble(
-	inm_codigo INT PRIMARY KEY,
+	inm_codigo INT IDENTITY PRIMARY KEY,
 	inm_nombre VARCHAR(50),
 	inm_descripcion VARCHAR(50),
 	inm_direccion VARCHAR(50),
@@ -116,7 +116,7 @@ CREATE TABLE SQLeros.Inmueble(
 GO
 
 CREATE TABLE SQLeros.CaracteristicaInmueble(
-	caracteristicainmueble_codigo INT PRIMARY KEY,
+	caracteristicainmueble_codigo INT IDENTITY PRIMARY KEY,
 	caracteristicainmueble_descripcion VARCHAR(10)
 )
 GO
@@ -129,7 +129,7 @@ CREATE TABLE SQLeros. CaracteristicaInmueblePorInmueble(
 GO
 
 CREATE TABLE SQLeros.Anuncio(
-	anu_codigo INT PRIMARY KEY,
+	anu_codigo INT IDENTITY PRIMARY KEY,
 	anu_agente INT,
 	anu_inmueble INT,
 	anu_sucursal INT,
@@ -145,7 +145,7 @@ CREATE TABLE SQLeros.Anuncio(
 GO
 
 CREATE TABLE SQLeros.Sucursal(
-	sucur_codigo INT PRIMARY KEY,
+	sucur_codigo INT IDENTITY PRIMARY KEY,
 	sucur_nombre VARCHAR(50),
 	sucur_ubicacion INT,
 	sucur_sucur_telefono VARCHAR(20),
@@ -154,32 +154,32 @@ CREATE TABLE SQLeros.Sucursal(
 GO
 
 CREATE TABLE SQLeros.Agente(
-	agen_codigo INT PRIMARY KEY,
+	agen_codigo INT IDENTITY PRIMARY KEY,
 	agen_persona INT,
 	agen_sucursal INT
 )
 GO
 
 CREATE TABLE SQLeros.Propietario(
-	propietario_codigo INT PRIMARY KEY,
+	propietario_codigo INT IDENTITY PRIMARY KEY,
 	propietario_persona INT,
 )
 GO
 
 CREATE TABLE SQLeros.Inquilino(
-	inquilino_codigo INT PRIMARY KEY,
+	inquilino_codigo INT IDENTITY PRIMARY KEY,
 	inquilino_persona INT,
 )
 GO
 
 CREATE TABLE SQLeros.Comprador(
-	comprador_codigo INT PRIMARY KEY,
+	comprador_codigo INT IDENTITY PRIMARY KEY,
 	comprador_persona INT,
 )
 GO
 
 CREATE TABLE SQLeros.Alquiler(
-	alq_codigo INT PRIMARY KEY,
+	alq_codigo INT IDENTITY PRIMARY KEY,
 	alq_inquilino INT,
 	alq_anuncio INT,
 	alq_fecha_inicio SMALLDATETIME,
@@ -194,7 +194,7 @@ CREATE TABLE SQLeros.Alquiler(
 GO
 
 CREATE TABLE SQLeros.DetalleAlquiler(
-	detallealq_codigo INT PRIMARY KEY,
+	detallealq_codigo INT IDENTITY PRIMARY KEY,
 	detallealq_alquiler INT,
 	detallealq_nro_periodo_inicial INT,
 	detallealq_nro_periodo_final INT,
@@ -203,7 +203,7 @@ CREATE TABLE SQLeros.DetalleAlquiler(
 GO
 
 CREATE TABLE SQLeros.PagoAlquiler(
-	pagoalq_codigo INT PRIMARY KEY,
+	pagoalq_codigo INT IDENTITY PRIMARY KEY,
 	pagoalq_detalle VARCHAR(100),
 	pagoalq_fecha SMALLDATETIME,
 	pagoalq_nro_periodo INT,
@@ -216,14 +216,14 @@ CREATE TABLE SQLeros.PagoAlquiler(
 GO
 
 CREATE TABLE SQLeros.MedioDePago(
-	medio_codigo INT PRIMARY KEY,
+	medio_codigo INT IDENTITY PRIMARY KEY,
 	medio_nombre VARCHAR(10),
 	medio_descripcion VARCHAR(100)
 )
 GO
 
 CREATE TABLE SQLeros.Venta(
-	 venta_codigo INT PRIMARY KEY,
+	 venta_codigo INT IDENTITY PRIMARY KEY,
 	 venta_comprador INT,
 	 venta_anuncio INT,
 	 venta_fecha SMALLDATETIME,
@@ -234,7 +234,7 @@ CREATE TABLE SQLeros.Venta(
 GO
 
 CREATE TABLE SQLeros.PagoVenta(
-	pagoventa_codigo INT PRIMARY KEY,
+	pagoventa_codigo INT IDENTITY PRIMARY KEY,
 	pagoventa_venta INT,
 	pagoventa_importe DECIMAL(12,2),
 	pagoventa_moneda INT,
@@ -244,37 +244,37 @@ CREATE TABLE SQLeros.PagoVenta(
 GO
 
 CREATE TABLE SQLeros.EstadoAnuncio(
-	estadoanuncio_codigo INT PRIMARY KEY,
+	estadoanuncio_codigo INT IDENTITY PRIMARY KEY,
 	estadoanuncio_descripcion VARCHAR(10)
 )
 GO
 
 CREATE TABLE SQLeros.TipoOperacion(
-	tipooperacion_codigo INT PRIMARY KEY,
+	tipooperacion_codigo INT IDENTITY PRIMARY KEY,
 	tipooperacion_descripcion VARCHAR(10)
 )
 GO
 
 CREATE TABLE SQLeros.Barrio(
-	barrio_codigo INT PRIMARY KEY,
+	barrio_codigo INT IDENTITY PRIMARY KEY,
 	barrio_descripcion VARCHAR(20)
 )
 GO
 
 CREATE TABLE SQLeros.Localidad(
-	localidad_codigo INT PRIMARY KEY,
+	localidad_codigo INT IDENTITY PRIMARY KEY,
 	localidad_descripcion VARCHAR(20)
 )
 GO
 
 CREATE TABLE SQLeros.Provincia(
-	provincia_codigo INT PRIMARY KEY,
+	provincia_codigo INT IDENTITY PRIMARY KEY,
 	provincia_descripcion VARCHAR(20)
 )
 GO
 
 CREATE TABLE SQLeros.Ubicacion(
-	ubicacion_codigo INT PRIMARY KEY,
+	ubicacion_codigo INT IDENTITY PRIMARY KEY,
 	ubicacion_barrio INT,
 	ubicacion_localidad INT,
 	ubicacion_provincia INT
@@ -282,34 +282,38 @@ CREATE TABLE SQLeros.Ubicacion(
 GO
 
 CREATE TABLE SQLeros.EstadoInmueble(
-	estadoinmueble_codigo INT PRIMARY KEY,
+	estadoinmueble_codigo INT IDENTITY PRIMARY KEY,
 	estadoinmueble_descripcion VARCHAR(10)
 )
 GO
 
 CREATE TABLE SQLeros.Disposicion(
-	disposicion_codigo INT PRIMARY KEY,
+	disposicion_codigo INT IDENTITY PRIMARY KEY,
 	disposicion_descripcion VARCHAR(10)
 )
 GO
 
 CREATE TABLE SQLeros.Orientacion(
-	orientacion_codigo INT PRIMARY KEY,
+	orientacion_codigo INT IDENTITY PRIMARY KEY,
 	orientacion_descripcion VARCHAR(10)
 )
 GO
 
 CREATE TABLE SQLeros.Ambientes(
-	ambientes_codigo INT PRIMARY KEY,
+	ambientes_codigo INT IDENTITY PRIMARY KEY,
 	ambientes_cantidad INT
 )
 GO
 
 CREATE TABLE SQLeros.TipoInmueble(
-	tipoinmueble_codigo INT PRIMARY KEY,
+	tipoinmueble_codigo INT IDENTITY PRIMARY KEY,
 	tipoinmueble_descripcion VARCHAR(10)
 )
 GO
 
+/*MIGRACIÓN*/
 
-
+--Migrar 
+INSERT INTO SQLeros.EstadoInmueble(estadoinmueble_descripcion)
+SELECT DISTINCT INMUEBLE_ESTADO FROM gd_esquema.Maestra
+WHERE INMUEBLE_ESTADO IS NOT NULL

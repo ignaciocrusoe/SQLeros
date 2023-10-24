@@ -1,53 +1,86 @@
 CREATE SCHEMA SQLeros
 GO
 
-IF OBJECT_ID('Persona', 'U') IS NOT NULL
-DROP TABLE Persona;
+IF OBJECT_ID('SQLeros.Persona', 'U') IS NOT NULL
+DROP TABLE SQLeros.Persona;
 
-IF OBJECT_ID('Propietario', 'U') IS NOT NULL
-DROP TABLE Propietario;
+IF OBJECT_ID('SQLeros.Propietario', 'U') IS NOT NULL
+DROP TABLE SQLeros.Propietario;
 
-IF OBJECT_ID('Agente', 'U') IS NOT NULL
-DROP TABLE Agente;
+IF OBJECT_ID('SQLeros.Agente', 'U') IS NOT NULL
+DROP TABLE SQLeros.Agente;
 
-IF OBJECT_ID('Inmueble', 'U') IS NOT NULL
-DROP TABLE Inmueble;
+IF OBJECT_ID('SQLeros.Inmueble', 'U') IS NOT NULL
+DROP TABLE SQLeros.Inmueble;
 
-IF OBJECT_ID('CaracteristicaInmueble', 'U') IS NOT NULL
-DROP TABLE CaracteristicaInmueble;
+IF OBJECT_ID('SQLeros.CaracteristicaInmueble', 'U') IS NOT NULL
+DROP TABLE SQLeros.CaracteristicaInmueble;
 
-IF OBJECT_ID('CaracteristicaInmueblePorInmueble', 'U') IS NOT NULL
-DROP TABLE CaracteristicaInmueblePorInmueble;
+IF OBJECT_ID('SQLeros.CaracteristicaInmueblePorInmueble', 'U') IS NOT NULL
+DROP TABLE SQLeros.CaracteristicaInmueblePorInmueble;
 
-IF OBJECT_ID('Anuncio', 'U') IS NOT NULL
-DROP TABLE Anuncio;
+IF OBJECT_ID('SQLeros.Anuncio', 'U') IS NOT NULL
+DROP TABLE SQLeros.Anuncio;
 
-IF OBJECT_ID('Sucursal', 'U') IS NOT NULL
-DROP TABLE Sucursal;
+IF OBJECT_ID('SQLeros.Sucursal', 'U') IS NOT NULL
+DROP TABLE SQLeros.Sucursal;
 
-IF OBJECT_ID('Inquilino', 'U') IS NOT NULL
-DROP TABLE Inquilino;
+IF OBJECT_ID('SQLeros.Inquilino', 'U') IS NOT NULL
+DROP TABLE SQLeros.Inquilino;
 
-IF OBJECT_ID('Comprador', 'U') IS NOT NULL
-DROP TABLE Comprador;
+IF OBJECT_ID('SQLeros.Comprador', 'U') IS NOT NULL
+DROP TABLE SQLeros.Comprador;
 
-IF OBJECT_ID('Alquiler', 'U') IS NOT NULL
-DROP TABLE Alquiler;
+IF OBJECT_ID('SQLeros.Alquiler', 'U') IS NOT NULL
+DROP TABLE SQLeros.Alquiler;
 
-IF OBJECT_ID('DetalleAlquiler', 'U') IS NOT NULL
-DROP TABLE DetalleAlquiler;
+IF OBJECT_ID('SQLeros.DetalleAlquiler', 'U') IS NOT NULL
+DROP TABLE SQLeros.DetalleAlquiler;
 
-IF OBJECT_ID('PagoAlquiler', 'U') IS NOT NULL
-DROP TABLE PagoAlquiler;
+IF OBJECT_ID('SQLeros.PagoAlquiler', 'U') IS NOT NULL
+DROP TABLE SQLeros.PagoAlquiler;
 
-IF OBJECT_ID('MedioDePago', 'U') IS NOT NULL
-DROP TABLE MedioDePago;
+IF OBJECT_ID('SQLeros.MedioDePago', 'U') IS NOT NULL
+DROP TABLE SQLeros.MedioDePago;
 
-IF OBJECT_ID('Venta', 'U') IS NOT NULL
-DROP TABLE Venta;
+IF OBJECT_ID('SQLeros.Venta', 'U') IS NOT NULL
+DROP TABLE SQLeros.Venta;
 
-IF OBJECT_ID('PagoVenta', 'U') IS NOT NULL
-DROP TABLE PagoVenta;
+IF OBJECT_ID('SQLeros.PagoVenta', 'U') IS NOT NULL
+DROP TABLE SQLeros.PagoVenta;
+
+IF OBJECT_ID('SQLeros.EstadoAnuncio', 'U') IS NOT NULL
+DROP TABLE SQLeros.EstadoAnuncio;
+
+IF OBJECT_ID('SQLeros.TipoOperacion', 'U') IS NOT NULL
+DROP TABLE SQLeros.TipoOperacion;
+
+IF OBJECT_ID('SQLeros.Barrio', 'U') IS NOT NULL
+DROP TABLE SQLeros.Barrio;
+
+IF OBJECT_ID('SQLeros.Localidad', 'U') IS NOT NULL
+DROP TABLE SQLeros.Localidad;
+
+IF OBJECT_ID('SQLeros.Provincia', 'U') IS NOT NULL
+DROP TABLE SQLeros.Provincia;
+
+IF OBJECT_ID('SQLeros.Ubicacion', 'U') IS NOT NULL
+DROP TABLE SQLeros.Ubicacion;
+
+IF OBJECT_ID('SQLeros.EstadoInmueble', 'U') IS NOT NULL
+DROP TABLE SQLeros.EstadoInmueble;
+
+IF OBJECT_ID('SQLeros.Disposicion', 'U') IS NOT NULL
+DROP TABLE SQLeros.Disposicion;
+
+IF OBJECT_ID('SQLeros.Orientacion', 'U') IS NOT NULL
+DROP TABLE SQLeros.Orientacion;
+
+IF OBJECT_ID('SQLeros.Ambientes', 'U') IS NOT NULL
+DROP TABLE SQLeros.Ambientes;
+
+IF OBJECT_ID('SQLeros.TipoInmueble', 'U') IS NOT NULL
+DROP TABLE SQLeros.TipoInmueble;
 
 /*CREACIÓN DE LAS TABLAS*/
 
@@ -277,3 +310,6 @@ CREATE TABLE SQLeros.TipoInmueble(
 	tipoinmueble_descripcion VARCHAR(10)
 )
 GO
+
+
+

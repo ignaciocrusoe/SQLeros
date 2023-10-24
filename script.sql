@@ -1,6 +1,54 @@
 CREATE SCHEMA SQLeros
 GO
 
+IF OBJECT_ID('Persona', 'U') IS NOT NULL
+DROP TABLE Persona;
+
+IF OBJECT_ID('Propietario', 'U') IS NOT NULL
+DROP TABLE Propietario;
+
+IF OBJECT_ID('Agente', 'U') IS NOT NULL
+DROP TABLE Agente;
+
+IF OBJECT_ID('Inmueble', 'U') IS NOT NULL
+DROP TABLE Inmueble;
+
+IF OBJECT_ID('CaracteristicaInmueble', 'U') IS NOT NULL
+DROP TABLE CaracteristicaInmueble;
+
+IF OBJECT_ID('CaracteristicaInmueblePorInmueble', 'U') IS NOT NULL
+DROP TABLE CaracteristicaInmueblePorInmueble;
+
+IF OBJECT_ID('Anuncio', 'U') IS NOT NULL
+DROP TABLE Anuncio;
+
+IF OBJECT_ID('Sucursal', 'U') IS NOT NULL
+DROP TABLE Sucursal;
+
+IF OBJECT_ID('Inquilino', 'U') IS NOT NULL
+DROP TABLE Inquilino;
+
+IF OBJECT_ID('Comprador', 'U') IS NOT NULL
+DROP TABLE Comprador;
+
+IF OBJECT_ID('Alquiler', 'U') IS NOT NULL
+DROP TABLE Alquiler;
+
+IF OBJECT_ID('DetalleAlquiler', 'U') IS NOT NULL
+DROP TABLE DetalleAlquiler;
+
+IF OBJECT_ID('PagoAlquiler', 'U') IS NOT NULL
+DROP TABLE PagoAlquiler;
+
+IF OBJECT_ID('MedioDePago', 'U') IS NOT NULL
+DROP TABLE MedioDePago;
+
+IF OBJECT_ID('Venta', 'U') IS NOT NULL
+DROP TABLE Venta;
+
+IF OBJECT_ID('PagoVenta', 'U') IS NOT NULL
+DROP TABLE PagoVenta;
+
 /*CREACIÓN DE LAS TABLAS*/
 
 -- Creo la tabla Persona porque hay que almacenar los mismos datos para un propietario o inquilino
@@ -14,6 +62,7 @@ CREATE TABLE SQLeros.Persona(
 	pers_mail VARCHAR(50),
 	pers_fecha_nac VARCHAR(50),
 );
+GO
 
 CREATE TABLE SQLeros.Inmueble(
 	inm_codigo INT PRIMARY KEY,
@@ -75,6 +124,24 @@ CREATE TABLE SQLeros.Agente(
 	agen_codigo INT PRIMARY KEY,
 	agen_persona INT,
 	agen_sucursal INT
+)
+GO
+
+CREATE TABLE SQLeros.Propietario(
+	propietario_codigo INT PRIMARY KEY,
+	propietario_persona INT,
+)
+GO
+
+CREATE TABLE SQLeros.Inquilino(
+	inquilino_codigo INT PRIMARY KEY,
+	inquilino_persona INT,
+)
+GO
+
+CREATE TABLE SQLeros.Comprador(
+	comprador_codigo INT PRIMARY KEY,
+	comprador_persona INT,
 )
 GO
 

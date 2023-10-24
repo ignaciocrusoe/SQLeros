@@ -263,7 +263,7 @@ GO
 
 CREATE TABLE SQLeros.Localidad(
 	localidad_codigo INT IDENTITY PRIMARY KEY,
-	localidad_descripcion VARCHAR(20)
+	localidad_descripcion VARCHAR(50)
 )
 GO
 
@@ -313,7 +313,23 @@ GO
 
 /*MIGRACIÓN*/
 
---Migrar 
 INSERT INTO SQLeros.EstadoInmueble(estadoinmueble_descripcion)
 SELECT DISTINCT INMUEBLE_ESTADO FROM gd_esquema.Maestra
 WHERE INMUEBLE_ESTADO IS NOT NULL
+
+INSERT INTO SQLeros.TipoInmueble(tipoinmueble_descripcion)
+SELECT DISTINCT INMUEBLE_TIPO FROM gd_esquema.Maestra
+WHERE INMUEBLE_TIPO IS NOT NULL
+
+
+INSERT INTO SQLeros.Provincia(provincia_descripcion)
+SELECT DISTINCT INMUEBLE_PROVINCIA FROM gd_esquema.Maestra
+WHERE INMUEBLE_PROVINCIA IS NOT NULL
+
+INSERT INTO SQLeros.Barrio(barrio_descripcion)
+SELECT DISTINCT INMUEBLE_BARRIO FROM gd_esquema.Maestra
+WHERE INMUEBLE_BARRIO IS NOT NULL
+
+INSERT INTO SQLeros.Localidad(localidad_descripcion)
+SELECT DISTINCT INMUEBLE_LOCALIDAD FROM gd_esquema.Maestra
+WHERE INMUEBLE_LOCALIDAD IS NOT NULL

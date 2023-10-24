@@ -269,7 +269,7 @@ GO
 
 CREATE TABLE SQLeros.Provincia(
 	provincia_codigo INT IDENTITY PRIMARY KEY,
-	provincia_descripcion VARCHAR(20)
+	provincia_descripcion VARCHAR(50)
 )
 GO
 
@@ -283,19 +283,19 @@ GO
 
 CREATE TABLE SQLeros.EstadoInmueble(
 	estadoinmueble_codigo INT IDENTITY PRIMARY KEY,
-	estadoinmueble_descripcion VARCHAR(10)
+	estadoinmueble_descripcion VARCHAR(50)
 )
 GO
 
 CREATE TABLE SQLeros.Disposicion(
 	disposicion_codigo INT IDENTITY PRIMARY KEY,
-	disposicion_descripcion VARCHAR(10)
+	disposicion_descripcion VARCHAR(50)
 )
 GO
 
 CREATE TABLE SQLeros.Orientacion(
 	orientacion_codigo INT IDENTITY PRIMARY KEY,
-	orientacion_descripcion VARCHAR(10)
+	orientacion_descripcion VARCHAR(50)
 )
 GO
 
@@ -307,7 +307,7 @@ GO
 
 CREATE TABLE SQLeros.TipoInmueble(
 	tipoinmueble_codigo INT IDENTITY PRIMARY KEY,
-	tipoinmueble_descripcion VARCHAR(10)
+	tipoinmueble_descripcion VARCHAR(50)
 )
 GO
 
@@ -318,8 +318,8 @@ SELECT DISTINCT INMUEBLE_ESTADO FROM gd_esquema.Maestra
 WHERE INMUEBLE_ESTADO IS NOT NULL
 
 INSERT INTO SQLeros.TipoInmueble(tipoinmueble_descripcion)
-SELECT DISTINCT INMUEBLE_TIPO FROM gd_esquema.Maestra
-WHERE INMUEBLE_TIPO IS NOT NULL
+SELECT DISTINCT INMUEBLE_TIPO_INMUEBLE FROM gd_esquema.Maestra
+WHERE INMUEBLE_TIPO_INMUEBLE IS NOT NULL
 
 
 INSERT INTO SQLeros.Provincia(provincia_descripcion)
@@ -333,3 +333,14 @@ WHERE INMUEBLE_BARRIO IS NOT NULL
 INSERT INTO SQLeros.Localidad(localidad_descripcion)
 SELECT DISTINCT INMUEBLE_LOCALIDAD FROM gd_esquema.Maestra
 WHERE INMUEBLE_LOCALIDAD IS NOT NULL
+
+INSERT INTO SQLeros.Orientacion(orientacion_descripcion)
+SELECT DISTINCT INMUEBLE_ORIENTACION FROM gd_esquema.Maestra
+WHERE INMUEBLE_ORIENTACION IS NOT NULL
+
+INSERT INTO SQLeros.Ubicacion(ubicacion_barrio, ubicacion_localidad, ubicacion_provincia)
+SELECT barrio_codigo, localidad_codigo, provincia_codigo FROM gd_esquema.Maestra
+JOIN SQLeros.Barrio ON barrio_descripcion = INMUEBLE_BARRIO
+JOIN SQLeros.Localidad ON localidad_descripcion = INMUEBLE_LOCALIDAD
+JOIN SQLeros.Provincia ON provincia_descripcion = INMUEBLE_PROVINCIA
+GROUP BY barrio_codigo, localidad_codigo, provincia_codigo

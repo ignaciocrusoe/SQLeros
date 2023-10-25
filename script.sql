@@ -1,5 +1,7 @@
+/*
 CREATE SCHEMA SQLeros
 GO
+*/
 
 IF OBJECT_ID('SQLeros.Persona', 'U') IS NOT NULL
 DROP TABLE SQLeros.Persona;
@@ -16,8 +18,8 @@ DROP TABLE SQLeros.Inmueble;
 IF OBJECT_ID('SQLeros.CaracteristicaInmueble', 'U') IS NOT NULL
 DROP TABLE SQLeros.CaracteristicaInmueble;
 
-IF OBJECT_ID('SQLeros.CaracteristicaInmueblePorInmueble', 'U') IS NOT NULL
-DROP TABLE SQLeros.CaracteristicaInmueblePorInmueble;
+IF OBJECT_ID('SQLeros.CompCaracteristicas', 'U') IS NOT NULL
+DROP TABLE SQLeros.CompCaracteristicas;
 
 IF OBJECT_ID('SQLeros.Anuncio', 'U') IS NOT NULL
 DROP TABLE SQLeros.Anuncio;
@@ -122,10 +124,10 @@ CREATE TABLE SQLeros.CaracteristicaInmueble(
 )
 GO
 
-CREATE TABLE SQLeros. CaracteristicaInmueblePorInmueble(
-	caracteristicainmuebleporinmueble_inmueble INT,
+CREATE TABLE SQLeros. CompCaracteristicas(
 	caracteristicainmuebleporinmueble_caracteristica INT,
-	CONSTRAINT CaracteristicaInmueblePorInmueblePK PRIMARY KEY (caracteristicainmuebleporinmueble_inmueble, caracteristicainmuebleporinmueble_caracteristica)
+	caracteristicainmuebleporinmueble_componente INT,
+	CONSTRAINT CaracteristicaInmueblePorInmueblePK PRIMARY KEY (caracteristicainmuebleporinmueble_caracteristica, caracteristicainmuebleporinmueble_componente)
 )
 GO
 
@@ -361,17 +363,43 @@ INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) V
 
 INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('Gas')
 
+/*
+INSERT INTO SQLeros.CompCaracteristicas(caracteristicainmuebleporinmueble_caracteristica, caracteristicainmuebleporinmueble_componente)
+SELECT 
+*/
 BEGIN
 INSERT INTO SQLeros.Persona(pers_dni, pers_nombre, pers_apellido, pers_mail, pers_telefono, pers_fecha_nac, pers_fecha_reg)
 SELECT DISTINCT PROPIETARIO_DNI, PROPIETARIO_NOMBRE, PROPIETARIO_APELLIDO, PROPIETARIO_MAIL, PROPIETARIO_TELEFONO, PROPIETARIO_FECHA_NAC, PROPIETARIO_FECHA_REGISTRO FROM gd_esquema.Maestra
 WHERE PROPIETARIO_DNI IS NOT NULL
 
 INSERT INTO SQLeros.Persona(pers_dni, pers_nombre, pers_apellido, pers_mail, pers_telefono, pers_fecha_nac, pers_fecha_reg)
-SELECT DISTINCT AGENTE_DNI, AGENTE_NOMBRE, AGENTE_APELLIDO, AGENTE_MAIL, AGENTE_TELEFONO, AGENTE_FECHA_NAC, AGENTE_FECHA_REGISTRO FROM gd_esquema.Maestra
+SELECT DISTINCT AGENTE_DNI, AGENTE_NOMBRE, AGENTE_APELLIDO, AGENTE_MAIL, AGENTE_TELEFONO, AGENTE_FECHA_NAC, AGENTE_FECHA_REGISTRO
+FROM gd_esquema.Maestra
 WHERE PROPIETARIO_DNI IS NOT NULL AND PROPIETARIO_DNI NOT IN (
 SELECT pers_dni FROM SQLeros.Persona
 )
 END
+
+INSERT INTO SQLeros.Propietario (propietario_persona)
+SELECT pers_codigo FROM SQLeros.Persona
+WHERE pers_dni IN (
+SELECT PROPIETARIO_DNI FROM gd_esquema.Maestra
+)
+
+INSERT INTO SQLeros.Inmueble (inm_descripcion, inm_ambientes, inm_anio, inm_direccion, inm_disposicion, inm_estado, inm_expensas) -- FALTA AGREGAR LAS CARACTERISTICAS
+SELECT DISTINCT INMUEBLE_DESCRIPCION, INMUEBLE_CANT_AMBIENTES, INMUEBLE_ANTIGUEDAD, INMUEBLE_DIRECCION, INMUEBLE_DISPOSICION, INMUEBLE_ESTADO, INMUEBLE_EXPESAS
+FROM gd_esquema.Maestra
+WHERE INMUEBLE_CODIGO IS NOT NULL
+GROUP BY INMUEBLE_DESCRIPCION, INMUEBLE_CANT_AMBIENTES, INMUEBLE_ANTIGUEDAD, INMUEBLE_DIRECCION, INMUEBLE_DISPOSICION, INMUEBLE_ESTADO, INMUEBLE_EXPESAS
+
+/*
+INSERT INTO SQLeros.Agente (agen_persona, agen_sucursal)
+SELECT pers_codigo, AGENTE_NOMBRE FROM SQLeros.Persona
+LEFT JOIN gd_esquema.Maestra ON pers_dni = AGENTE_DNI
+WHERE pers_dni IN (
+SELECT PROPIETARIO_DNI FROM gd_esquema.Maestra
+)
+*/
 
 SELECT * FROM SQLeros.Persona
 /*

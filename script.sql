@@ -85,6 +85,7 @@ DROP TABLE SQLeros.TipoInmueble;
 /*CREACIÓN DE LAS TABLAS*/
 
 -- Creo la tabla Persona porque hay que almacenar los mismos datos para un propietario o inquilino
+BEGIN
 CREATE TABLE SQLeros.Persona(
 	pers_codigo INT IDENTITY PRIMARY KEY,
 	pers_nombre VARCHAR(50),
@@ -95,7 +96,7 @@ CREATE TABLE SQLeros.Persona(
 	pers_mail VARCHAR(50),
 	pers_fecha_nac VARCHAR(50),
 );
-GO
+END
 
 CREATE TABLE SQLeros.Inmueble(
 	inm_codigo INT IDENTITY PRIMARY KEY,
@@ -117,7 +118,7 @@ GO
 
 CREATE TABLE SQLeros.CaracteristicaInmueble(
 	caracteristicainmueble_codigo INT IDENTITY PRIMARY KEY,
-	caracteristicainmueble_descripcion VARCHAR(10)
+	caracteristicainmueble_descripcion VARCHAR(50)
 )
 GO
 
@@ -301,7 +302,7 @@ GO
 
 CREATE TABLE SQLeros.Ambientes(
 	ambientes_codigo INT IDENTITY PRIMARY KEY,
-	ambientes_cantidad INT
+	ambientes_cantidad VARCHAR(50)
 )
 GO
 
@@ -321,6 +322,9 @@ INSERT INTO SQLeros.TipoInmueble(tipoinmueble_descripcion)
 SELECT DISTINCT INMUEBLE_TIPO_INMUEBLE FROM gd_esquema.Maestra
 WHERE INMUEBLE_TIPO_INMUEBLE IS NOT NULL
 
+INSERT INTO SQLeros.Ambientes(ambientes_cantidad)
+SELECT DISTINCT INMUEBLE_CANT_AMBIENTES FROM gd_esquema.Maestra
+WHERE INMUEBLE_CANT_AMBIENTES IS NOT NULL
 
 INSERT INTO SQLeros.Provincia(provincia_descripcion)
 SELECT DISTINCT INMUEBLE_PROVINCIA FROM gd_esquema.Maestra
@@ -338,9 +342,38 @@ INSERT INTO SQLeros.Orientacion(orientacion_descripcion)
 SELECT DISTINCT INMUEBLE_ORIENTACION FROM gd_esquema.Maestra
 WHERE INMUEBLE_ORIENTACION IS NOT NULL
 
+INSERT INTO SQLeros.Disposicion(disposicion_descripcion)
+SELECT DISTINCT INMUEBLE_DISPOSICION FROM gd_esquema.Maestra
+WHERE INMUEBLE_DISPOSICION IS NOT NULL
+
 INSERT INTO SQLeros.Ubicacion(ubicacion_barrio, ubicacion_localidad, ubicacion_provincia)
 SELECT barrio_codigo, localidad_codigo, provincia_codigo FROM gd_esquema.Maestra
 JOIN SQLeros.Barrio ON barrio_descripcion = INMUEBLE_BARRIO
 JOIN SQLeros.Localidad ON localidad_descripcion = INMUEBLE_LOCALIDAD
 JOIN SQLeros.Provincia ON provincia_descripcion = INMUEBLE_PROVINCIA
 GROUP BY barrio_codigo, localidad_codigo, provincia_codigo
+
+INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('WiFi')
+
+INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('Cable')
+
+INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('Calefacción')
+
+INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('Gas')
+
+BEGIN
+INSERT INTO SQLeros.Persona(pers_dni, pers_nombre, pers_apellido, pers_mail, pers_telefono, pers_fecha_nac, pers_fecha_reg)
+SELECT DISTINCT PROPIETARIO_DNI, PROPIETARIO_NOMBRE, PROPIETARIO_APELLIDO, PROPIETARIO_MAIL, PROPIETARIO_TELEFONO, PROPIETARIO_FECHA_NAC, PROPIETARIO_FECHA_REGISTRO FROM gd_esquema.Maestra
+WHERE PROPIETARIO_DNI IS NOT NULL
+
+INSERT INTO SQLeros.Persona(pers_dni, pers_nombre, pers_apellido, pers_mail, pers_telefono, pers_fecha_nac, pers_fecha_reg)
+SELECT DISTINCT AGENTE_DNI, AGENTE_NOMBRE, AGENTE_APELLIDO, AGENTE_MAIL, AGENTE_TELEFONO, AGENTE_FECHA_NAC, AGENTE_FECHA_REGISTRO FROM gd_esquema.Maestra
+WHERE PROPIETARIO_DNI IS NOT NULL AND PROPIETARIO_DNI NOT IN (
+SELECT pers_dni FROM SQLeros.Persona
+)
+END
+
+SELECT * FROM SQLeros.Persona
+/*
+SELECT * FROM gd_esquema.Maestra WHERE INMUEBLE_ANTIGUEDAD IS NOT NULL
+*/

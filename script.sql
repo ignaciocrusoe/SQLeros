@@ -105,8 +105,8 @@ CREATE TABLE SQLeros.Inmueble(
 	inm_nombre VARCHAR(50),
 	inm_descripcion VARCHAR(50),
 	inm_direccion VARCHAR(100),
-	inm_suerficie VARCHAR(50),
-	inm_anio VARCHAR(50),
+	inm_superficie VARCHAR(50),
+	inm_antiguedad VARCHAR(50),
 	inm_expensas VARCHAR(50),
 	inm_ubicacion INT,
 	inm_tipo INT,
@@ -354,6 +354,13 @@ JOIN SQLeros.Localidad ON localidad_descripcion = INMUEBLE_LOCALIDAD
 JOIN SQLeros.Provincia ON provincia_descripcion = INMUEBLE_PROVINCIA
 GROUP BY barrio_codigo, localidad_codigo, provincia_codigo
 
+INSERT INTO SQLeros.Ubicacion(ubicacion_localidad, ubicacion_provincia)
+SELECT localidad_codigo, provincia_codigo FROM gd_esquema.Maestra
+JOIN SQLeros.Localidad ON localidad_descripcion = SUCURSAL_LOCALIDAD
+JOIN SQLeros.Provincia ON provincia_descripcion = SUCURSAL_PROVINCIA
+WHERE localidad_codigo NOT IN (SELECT localidad_codigo FROM SQLeros.Localidad)
+GROUP BY localidad_codigo, provincia_codigo
+
 INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('WiFi')
 
 INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('Cable')
@@ -381,21 +388,35 @@ WHERE pers_dni IN (
 SELECT PROPIETARIO_DNI FROM gd_esquema.Maestra
 )
 
-INSERT INTO SQLeros.Inmueble (inm_descripcion, inm_ambientes, inm_anio, inm_direccion, inm_disposicion, inm_estado, inm_expensas) -- FALTA AGREGAR LAS CARACTERISTICAS
-SELECT DISTINCT INMUEBLE_DESCRIPCION, ambientes_codigo, INMUEBLE_ANTIGUEDAD, INMUEBLE_DIRECCION, disposicion_codigo, estadoinmueble_codigo, INMUEBLE_EXPESAS
+INSERT INTO SQLeros.Inmueble (inm_descripcion, inm_ambientes, inm_direccion, inm_disposicion, inm_estado, inm_expensas, inm_ubicacion, inm_superficie, inm_antiguedad, inm_tipo, inm_nombre)
+SELECT DISTINCT INMUEBLE_DESCRIPCION, ambientes_codigo, INMUEBLE_DIRECCION, disposicion_codigo, estadoinmueble_codigo, INMUEBLE_EXPESAS, ubicacion_codigo, INMUEBLE_SUPERFICIETOTAL, INMUEBLE_ANTIGUEDAD, tipoinmueble_codigo, INMUEBLE_NOMBRE
 FROM gd_esquema.Maestra
 LEFT JOIN SQLeros.Ambientes ON  INMUEBLE_CANT_AMBIENTES = ambientes_cantidad
 LEFT JOIN SQLeros.Disposicion ON  INMUEBLE_DISPOSICION = disposicion_descripcion
 LEFT JOIN SQLeros.EstadoInmueble ON  INMUEBLE_ESTADO = estadoinmueble_descripcion
+JOIN SQLeros.TipoInmueble ON tipoinmueble_descripcion = INMUEBLE_TIPO_INMUEBLE
+LEFT JOIN SQLeros.Ubicacion ON ubicacion_codigo = (
+	SELECT ubicacion_codigo
+	FROM SQLeros.Ubicacion A
+	JOIN SQLeros.Barrio ON barrio_codigo = A.ubicacion_barrio
+	JOIN SQLeros.Localidad ON localidad_codigo = A.ubicacion_localidad
+	JOIN SQLeros.Provincia ON provincia_codigo = A.ubicacion_provincia
+	WHERE INMUEBLE_BARRIO = barrio_descripcion
+	AND INMUEBLE_LOCALIDAD = localidad_descripcion
+	AND INMUEBLE_PROVINCIA = provincia_descripcion
+	)
 WHERE INMUEBLE_CODIGO IS NOT NULL
-GROUP BY INMUEBLE_DESCRIPCION, ambientes_codigo, INMUEBLE_ANTIGUEDAD, INMUEBLE_DIRECCION, disposicion_codigo, estadoinmueble_codigo, INMUEBLE_EXPESAS
+
+GROUP BY INMUEBLE_DESCRIPCION, ambientes_codigo, INMUEBLE_DIRECCION, disposicion_codigo, estadoinmueble_codigo, INMUEBLE_EXPESAS, ubicacion_codigo, INMUEBLE_SUPERFICIETOTAL, INMUEBLE_ANTIGUEDAD, tipoinmueble_codigo, INMUEBLE_NOMBRE
+
+SELECT * FROM SQLeros.Inmueble
 
 INSERT INTO SQLeros.CaracteristicaInmueblePorInmueble (caracteristicainmuebleporinmueble_inmueble, caracteristicainmuebleporinmueble_caracteristica)
 SELECT inm_codigo, (SELECT caracteristicainmueble_codigo FROM SQLeros.CaracteristicaInmueble WHERE caracteristicainmueble_descripcion = 'Wifi')
 FROM SQLeros.Inmueble
 JOIN gd_esquema.Maestra ON inm_descripcion =  INMUEBLE_DESCRIPCION
 AND inm_ambientes = (SELECT ambientes_codigo FROM SQLeros.Ambientes WHERE ambientes_cantidad = INMUEBLE_CANT_AMBIENTES)
-AND inm_anio = INMUEBLE_ANTIGUEDAD
+AND inm_antiguedad = INMUEBLE_ANTIGUEDAD
 AND inm_direccion = INMUEBLE_DIRECCION
 AND inm_disposicion = (SELECT disposicion_codigo FROM SQLeros.Disposicion WHERE disposicion_descripcion = INMUEBLE_DISPOSICION) 
 AND inm_estado = (SELECT estadoinmueble_codigo FROM SQLeros.EstadoInmueble WHERE estadoinmueble_descripcion = INMUEBLE_ESTADO)
@@ -408,7 +429,7 @@ SELECT inm_codigo, (SELECT caracteristicainmueble_codigo FROM SQLeros.Caracteris
 FROM SQLeros.Inmueble
 JOIN gd_esquema.Maestra ON inm_descripcion =  INMUEBLE_DESCRIPCION
 AND inm_ambientes = (SELECT ambientes_codigo FROM SQLeros.Ambientes WHERE ambientes_cantidad = INMUEBLE_CANT_AMBIENTES)
-AND inm_anio = INMUEBLE_ANTIGUEDAD
+AND inm_antiguedad = INMUEBLE_ANTIGUEDAD
 AND inm_direccion = INMUEBLE_DIRECCION
 AND inm_disposicion = (SELECT disposicion_codigo FROM SQLeros.Disposicion WHERE disposicion_descripcion = INMUEBLE_DISPOSICION) 
 AND inm_estado = (SELECT estadoinmueble_codigo FROM SQLeros.EstadoInmueble WHERE estadoinmueble_descripcion = INMUEBLE_ESTADO)
@@ -421,7 +442,7 @@ SELECT inm_codigo, (SELECT caracteristicainmueble_codigo FROM SQLeros.Caracteris
 FROM SQLeros.Inmueble
 JOIN gd_esquema.Maestra ON inm_descripcion =  INMUEBLE_DESCRIPCION
 AND inm_ambientes = (SELECT ambientes_codigo FROM SQLeros.Ambientes WHERE ambientes_cantidad = INMUEBLE_CANT_AMBIENTES)
-AND inm_anio = INMUEBLE_ANTIGUEDAD
+AND inm_antiguedad = INMUEBLE_ANTIGUEDAD
 AND inm_direccion = INMUEBLE_DIRECCION
 AND inm_disposicion = (SELECT disposicion_codigo FROM SQLeros.Disposicion WHERE disposicion_descripcion = INMUEBLE_DISPOSICION) 
 AND inm_estado = (SELECT estadoinmueble_codigo FROM SQLeros.EstadoInmueble WHERE estadoinmueble_descripcion = INMUEBLE_ESTADO)
@@ -434,13 +455,22 @@ SELECT inm_codigo, (SELECT caracteristicainmueble_codigo FROM SQLeros.Caracteris
 FROM SQLeros.Inmueble
 JOIN gd_esquema.Maestra ON inm_descripcion =  INMUEBLE_DESCRIPCION
 AND inm_ambientes = (SELECT ambientes_codigo FROM SQLeros.Ambientes WHERE ambientes_cantidad = INMUEBLE_CANT_AMBIENTES)
-AND inm_anio = INMUEBLE_ANTIGUEDAD
+AND inm_antiguedad = INMUEBLE_ANTIGUEDAD
 AND inm_direccion = INMUEBLE_DIRECCION
 AND inm_disposicion = (SELECT disposicion_codigo FROM SQLeros.Disposicion WHERE disposicion_descripcion = INMUEBLE_DISPOSICION) 
 AND inm_estado = (SELECT estadoinmueble_codigo FROM SQLeros.EstadoInmueble WHERE estadoinmueble_descripcion = INMUEBLE_ESTADO)
 AND inm_expensas = INMUEBLE_EXPESAS
 WHERE INMUEBLE_CARACTERISTICA_GAS = 1
 GROUP BY inm_codigo
+
+
+/*
+INSERT INTO SQLeros.Sucursal (sucur_nombre, sucur_direccion, sucur_sucur_telefono, sucur_ubicacion)
+SELECT SUCURSAL_NOMBRE, SUCURSAL_DIRECCION, SUCURSAL_TELEFONO, SQLeros.Ubicacion FROM gd_esquema.Maestra
+JOIN SQLeros.Ubicacion ON (SLECT barrio_descripcion FROM SQLeros.Barrio)
+
+*/
+
 
 
 /*

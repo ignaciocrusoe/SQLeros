@@ -610,6 +610,15 @@ INSERT INTO SQLeros.PagoAlquiler (pagoalq_codigo, pagoalq_descripcion_periodo, p
 SELECT DISTINCT PAGO_ALQUILER_CODIGO, PAGO_ALQUILER_DESC, PAGO_ALQUILER_FECHA, PAGO_ALQUILER_FEC_FIN, PAGO_ALQUILER_FEC_INI, PAGO_ALQUILER_IMPORTE, medio_codigo, PAGO_ALQUILER_NRO_PERIODO, PAGO_ALQUILER_FECHA_VENCIMIENTO
 FROM gd_esquema.Maestra
 JOIN SQLeros.MedioDePago ON medio_nombre = PAGO_ALQUILER_MEDIO_PAGO
+
+INSERT INTO SQLeros.PagoVenta(pagoventa_venta, pagoventa_importe, pagoventa_moneda, pagoventa_cotizacion, pagoventa_medio)
+SELECT DISTINCT VENTA_CODIGO, PAGO_VENTA_IMPORTE, moneda_codigo, PAGO_VENTA_COTIZACION, medio_codigo
+FROM gd_esquema.Maestra
+JOIN SQLeros.MedioDePago ON medio_nombre = PAGO_VENTA_MEDIO_PAGO
+JOIN SQLeros.Moneda ON moneda_nombre = PAGO_VENTA_MONEDA
+
+
+
 /*
 SELECT DISTINCT INMUEBLE_CODIGO FROM gd_esquema.Maestra
 SELECT inm_descripcion, caracteristicainmueble_descripcion FROM SQLeros.CaracteristicaInmueblePorInmueble

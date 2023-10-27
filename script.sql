@@ -260,7 +260,7 @@ GO
 
 CREATE TABLE SQLeros.TipoOperacion(
 	tipooperacion_codigo INT IDENTITY PRIMARY KEY,
-	tipooperacion_descripcion VARCHAR(10)
+	tipooperacion_descripcion VARCHAR(40)
 )
 GO
 
@@ -382,11 +382,11 @@ INSERT INTO SQLeros.Moneda (moneda_nombre)
 SELECT DISTINCT ANUNCIO_MONEDA FROM gd_esquema.Maestra
 
 INSERT INTO SQLeros.Moneda (moneda_nombre)
-SELECT DISTINCT ANUNCIO_MONEDA FROM gd_esquema.Maestra
+SELECT DISTINCT PAGO_VENTA_MONEDA FROM gd_esquema.Maestra
 WHERE PAGO_VENTA_MONEDA NOT IN (SELECT moneda_nombre FROM SQLeros.Moneda)
 
 INSERT INTO SQLeros.Moneda (moneda_nombre)
-SELECT DISTINCT ANUNCIO_MONEDA FROM gd_esquema.Maestra
+SELECT DISTINCT VENTA_MONEDA FROM gd_esquema.Maestra
 WHERE VENTA_MONEDA NOT IN (SELECT moneda_nombre FROM SQLeros.Moneda)
 
 INSERT INTO SQLeros.Ubicacion(ubicacion_barrio, ubicacion_localidad, ubicacion_provincia)
@@ -549,6 +549,20 @@ SELECT distinct pers_codigo, sucur_codigo FROM SQLeros.Persona
 left join gd_esquema.Maestra on AGENTE_DNI = pers_dni
 join SQLeros.sucursal on SUCURSAL_NOMBRE = SQLeros.sucursal.sucur_nombre
 WHERE pers_dni IN (SELECT AGENTE_DNI FROM gd_esquema.Maestra)
+
+INSERT INTO SQLeros.EstadoAnuncio (estadoanuncio_descripcion)
+SELECT DISTINCT ANUNCIO_ESTADO FROM gd_esquema.Maestra
+WHERE ANUNCIO_ESTADO IS NOT NULL
+
+-- Los nombres vienen como "Tipo Operacion Alquiler Contrato", se podria sacar
+INSERT INTO SQLeros.TipoOperacion (tipooperacion_descripcion)
+SELECT DISTINCT ANUNCIO_TIPO_OPERACION FROM gd_esquema.Maestra
+WHERE ANUNCIO_TIPO_OPERACION IS NOT NULL
+
+-- Vendidos y finalizados tienen periodo 0 (?)
+INSERT INTO SQLeros.TipoPeriodo (tipoperiodo_nombre)
+SELECT DISTINCT ANUNCIO_TIPO_PERIODO FROM gd_esquema.Maestra
+WHERE ANUNCIO_TIPO_PERIODO IS NOT NULL
 
 INSERT INTO SQLeros.Anuncio (anu_agente, anu_inmueble, anu_sucursal, anu_fecha_pub, anu_precio, anu_costo, anu_fecha_fin, anu_tipo_op, anu_moneda, anu_estado, anu_tipo_periodo)
 SELECT agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo

@@ -564,16 +564,18 @@ INSERT INTO SQLeros.TipoPeriodo (tipoperiodo_descripcion)
 SELECT DISTINCT ANUNCIO_TIPO_PERIODO FROM gd_esquema.Maestra
 WHERE ANUNCIO_TIPO_PERIODO IS NOT NULL
 
+-- Es muy lento
 INSERT INTO SQLeros.Anuncio (anu_agente, anu_inmueble, anu_sucursal, anu_fecha_pub, anu_precio, anu_costo, anu_fecha_fin, anu_tipo_op, anu_moneda, anu_estado, anu_tipo_periodo)
 SELECT agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
 FROM gd_esquema.Maestra
-JOIN SQLeros.Agente ON AGENTE_DNI = (SELECT pers_dni FROM SQLeros.Persona LEFT JOIN SQLeros.Agente ON pers_codigo = agen_persona)
+JOIN SQLeros.Persona ON pers_dni = AGENTE_DNI
+JOIN SQLeros.Agente ON agen_persona = pers_codigo
 JOIN SQLeros.Inmueble ON inm_nombre = INMUEBLE_NOMBRE
 JOIN SQLeros.Sucursal ON sucur_nombre = SUCURSAL_NOMBRE
 JOIN SQLeros.TipoOperacion ON tipooperacion_descripcion = ANUNCIO_TIPO_OPERACION
 JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
 JOIN SQLeros.TipoPeriodo ON tipoperiodo_descripcion = ANUNCIO_TIPO_PERIODO
-JOIN SQLeros.Moneda ON moneda_codigo = ANUNCIO_MONEDA
+JOIN SQLeros.Moneda ON moneda_nombre = ANUNCIO_MONEDA
 GROUP BY agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
 
 
@@ -606,4 +608,5 @@ SELECT * FROM SQLeros.Sucursal
 
 Select * from gd_esquema.Maestra where AGENTE_NOMBRE is not NULL
 SELECT * from SQLeros.Agente
+
 */

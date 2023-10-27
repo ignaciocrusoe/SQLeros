@@ -2,6 +2,7 @@
 CREATE SCHEMA SQLeros
 GO
 */
+use GD2C2023
 
 IF OBJECT_ID('SQLeros.Persona', 'U') IS NOT NULL
 DROP TABLE SQLeros.Persona;
@@ -388,7 +389,21 @@ WHERE PROPIETARIO_DNI IS NOT NULL
 INSERT INTO SQLeros.Persona(pers_dni, pers_nombre, pers_apellido, pers_mail, pers_telefono, pers_fecha_nac, pers_fecha_reg)
 SELECT DISTINCT AGENTE_DNI, AGENTE_NOMBRE, AGENTE_APELLIDO, AGENTE_MAIL, AGENTE_TELEFONO, AGENTE_FECHA_NAC, AGENTE_FECHA_REGISTRO
 FROM gd_esquema.Maestra
-WHERE PROPIETARIO_DNI IS NOT NULL AND PROPIETARIO_DNI NOT IN (
+WHERE AGENTE_DNI IS NOT NULL AND AGENTE_DNI NOT IN (
+SELECT pers_dni FROM SQLeros.Persona
+)
+
+INSERT INTO SQLeros.Persona(pers_dni, pers_nombre, pers_apellido, pers_mail, pers_telefono, pers_fecha_nac, pers_fecha_reg)
+SELECT DISTINCT INQUILINO_DNI, INQUILINO_NOMBRE, INQUILINO_APELLIDO, INQUILINO_MAIL, INQUILINO_TELEFONO, INQUILINO_FECHA_NAC, INQUILINO_FECHA_REGISTRO
+FROM gd_esquema.Maestra
+WHERE INQUILINO_DNI IS NOT NULL AND INQUILINO_DNI NOT IN (
+SELECT pers_dni FROM SQLeros.Persona
+)
+
+INSERT INTO SQLeros.Persona(pers_dni, pers_nombre, pers_apellido, pers_mail, pers_telefono, pers_fecha_nac, pers_fecha_reg)
+SELECT DISTINCT COMPRADOR_DNI, COMPRADOR_NOMBRE, COMPRADOR_APELLIDO, COMPRADOR_MAIL, COMPRADOR_TELEFONO, COMPRADOR_FECHA_NAC, COMPRADOR_FECHA_REGISTRO
+FROM gd_esquema.Maestra
+WHERE COMPRADOR_DNI IS NOT NULL AND COMPRADOR_DNI NOT IN (
 SELECT pers_dni FROM SQLeros.Persona
 )
 END
@@ -398,6 +413,20 @@ SELECT pers_codigo FROM SQLeros.Persona
 WHERE pers_dni IN (
 SELECT PROPIETARIO_DNI FROM gd_esquema.Maestra
 )
+
+INSERT INTO SQLeros.Inquilino (inquilino_persona)
+SELECT pers_codigo FROM SQLeros.Persona
+WHERE pers_dni IN (
+SELECT INQUILINO_DNI FROM gd_esquema.Maestra
+)
+
+INSERT INTO SQLeros.comprador (comprador_persona)
+SELECT pers_codigo FROM SQLeros.Persona
+WHERE pers_dni IN (
+SELECT COMPRADOR_DNI FROM gd_esquema.Maestra
+)
+
+-- Agente se carga despues de cargar las sucursales
 
 INSERT INTO SQLeros.Inmueble (inm_descripcion, inm_ambientes, inm_direccion, inm_disposicion, inm_estado, inm_expensas, inm_ubicacion, inm_superficie, inm_antiguedad, inm_tipo, inm_nombre, inm_orientacion)
 SELECT DISTINCT INMUEBLE_DESCRIPCION, ambientes_codigo, INMUEBLE_DIRECCION, disposicion_codigo, estadoinmueble_codigo, INMUEBLE_EXPESAS, ubicacion_codigo, INMUEBLE_SUPERFICIETOTAL, INMUEBLE_ANTIGUEDAD, tipoinmueble_codigo, INMUEBLE_NOMBRE, orientacion_codigo
@@ -485,18 +514,15 @@ LEFT JOIN SQLeros.Ubicacion ON ubicacion_codigo = (
 	)
 GROUP BY SUCURSAL_NOMBRE, SUCURSAL_DIRECCION, SUCURSAL_TELEFONO, ubicacion_codigo
 
+INSERT INTO SQLeros.Agente (agen_persona, agen_sucursal)
+SELECT distinct pers_codigo, sucur_codigo FROM SQLeros.Persona
+left join gd_esquema.Maestra on AGENTE_DNI = pers_dni
+join SQLeros.sucursal on SUCURSAL_NOMBRE = SQLeros.sucursal.sucur_nombre
 
+WHERE pers_dni IN (SELECT AGENTE_DNI FROM gd_esquema.Maestra)
 
 
 /*
-INSERT INTO SQLeros.Agente (agen_persona, agen_sucursal)
-SELECT pers_codigo, AGENTE_NOMBRE FROM SQLeros.Persona
-LEFT JOIN gd_esquema.Maestra ON pers_dni = AGENTE_DNI
-WHERE pers_dni IN (
-SELECT PROPIETARIO_DNI FROM gd_esquema.Maestra
-)
-
-
 SELECT inm_descripcion, caracteristicainmueble_descripcion FROM SQLeros.CaracteristicaInmueblePorInmueble
 JOIN SQLeros.Inmueble ON inm_codigo = caracteristicainmuebleporinmueble_inmueble
 JOIN SQLeros.CaracteristicaInmueble ON caracteristicainmueble_codigo = caracteristicainmuebleporinmueble_caracteristica
@@ -507,8 +533,9 @@ SELECT * FROM gd_esquema.Maestra WHERE INMUEBLE_ANTIGUEDAD IS NOT NULL
 
 
 
-
+/*
 SELECT * FROM SQLeros.Ubicacion WHERE ubicacion_barrio IS NULL
+select * from SQLeros.Sucursal
 
 SELECT * FROM gd_esquema.Maestra WHERE SUCURSAL_CODIGO IS NOT NULL
 
@@ -520,3 +547,7 @@ JOIN SQLeros.Localidad ON localidad_codigo = ubicacion_localidad
 WHERE ubicacion_barrio IS NULL
 
 SELECT * FROM SQLeros.Sucursal
+
+Select * from gd_esquema.Maestra where AGENTE_NOMBRE is not NULL
+SELECT * from SQLeros.Agente
+*/

@@ -329,7 +329,7 @@ GO
 
 CREATE TABLE SQLeros.TipoPeriodo(
 	tipoperiodo_codigo INT IDENTITY PRIMARY KEY,
-	periodo_descripcion VARCHAR(20)
+	tipoperiodo_descripcion VARCHAR(20)
 )
 GO
 
@@ -560,7 +560,7 @@ SELECT DISTINCT ANUNCIO_TIPO_OPERACION FROM gd_esquema.Maestra
 WHERE ANUNCIO_TIPO_OPERACION IS NOT NULL
 
 -- Vendidos y finalizados tienen periodo 0 (?)
-INSERT INTO SQLeros.TipoPeriodo (tipoperiodo_nombre)
+INSERT INTO SQLeros.TipoPeriodo (tipoperiodo_descripcion)
 SELECT DISTINCT ANUNCIO_TIPO_PERIODO FROM gd_esquema.Maestra
 WHERE ANUNCIO_TIPO_PERIODO IS NOT NULL
 
@@ -570,9 +570,9 @@ FROM gd_esquema.Maestra
 JOIN SQLeros.Agente ON AGENTE_DNI = (SELECT pers_dni FROM SQLeros.Persona LEFT JOIN SQLeros.Agente ON pers_codigo = agen_persona)
 JOIN SQLeros.Inmueble ON inm_nombre = INMUEBLE_NOMBRE
 JOIN SQLeros.Sucursal ON sucur_nombre = SUCURSAL_NOMBRE
-JOIN SQLeros.TipoOperacion ON tipooperacion_codigo = ANUNCIO_TIPO_OPERACION
+JOIN SQLeros.TipoOperacion ON tipooperacion_descripcion = ANUNCIO_TIPO_OPERACION
 JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
-JOIN SQLeros.TipoPeriodo ON tipoperiodo_codigo = ANUNCIO_TIPO_PERIODO
+JOIN SQLeros.TipoPeriodo ON tipoperiodo_descripcion = ANUNCIO_TIPO_PERIODO
 JOIN SQLeros.Moneda ON moneda_codigo = ANUNCIO_MONEDA
 GROUP BY agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
 

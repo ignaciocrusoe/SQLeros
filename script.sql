@@ -188,7 +188,8 @@ CREATE TABLE SQLeros.Comprador(
 GO
 
 CREATE TABLE SQLeros.Alquiler(
-	alq_codigo INT PRIMARY KEY,
+	alq_codigo INT IDENTITY PRIMARY KEY,
+	alq_codigo_maestra INT,
 	alq_inquilino INT,
 	alq_anuncio INT,
 	alq_fecha_inicio SMALLDATETIME,
@@ -212,9 +213,11 @@ CREATE TABLE SQLeros.DetalleAlquiler(
 GO
 
 CREATE TABLE SQLeros.PagoAlquiler(
-	pagoalq_codigo INT PRIMARY KEY,
+	pagoalq_codigo INT IDENTITY PRIMARY KEY,
+	pagoalq_codigo_maestra INT,
 	pagoalq_fecha SMALLDATETIME,
 	pagoalq_nro_periodo INT,
+	pagoalq_alquiler INT,
 	pagoalq_descripcion_periodo VARCHAR(100),
 	pagoalq_fecha_inicio SMALLDATETIME,
 	pagoalq_fecha_fin SMALLDATETIME,
@@ -576,8 +579,7 @@ JOIN SQLeros.TipoPeriodo ON tipoperiodo_descripcion = ANUNCIO_TIPO_PERIODO
 JOIN SQLeros.Moneda ON moneda_nombre = ANUNCIO_MONEDA
 GROUP BY ANUNCIO_CODIGO, agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
 
---Revisar la PK
-INSERT INTO SQLeros.Alquiler (alq_codigo, alq_anuncio, alq_cant_periodos, alq_comision, alq_depositio, alq_estado, alq_fecha_fin, alq_fecha_inicio, alq_gastos, alq_inquilino, alq_precio)
+INSERT INTO SQLeros.Alquiler (alq_codigo_maestra, alq_anuncio, alq_cant_periodos, alq_comision, alq_depositio, alq_estado, alq_fecha_fin, alq_fecha_inicio, alq_gastos, alq_inquilino, alq_precio)
 SELECT DISTINCT ALQUILER_CODIGO, ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, estadoanuncio_codigo, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, inquilino_codigo, ANUNCIO_PRECIO_PUBLICADO
 FROM gd_esquema.Maestra
 JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
@@ -585,8 +587,16 @@ JOIN SQLeros.Persona ON pers_dni = INQUILINO_DNI
 JOIN SQLeros.Inquilino ON inquilino_persona = pers_codigo
 GROUP BY ALQUILER_CODIGO, ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, estadoanuncio_codigo, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, inquilino_codigo, ANUNCIO_PRECIO_PUBLICADO
 
+/*
+SELECT * FROM SQLeros.Inquilino
+JOIN SQLeros.Persona ON pers_codigo = inquilino_persona
+WHERE inquilino_codigo = '7866' OR inquilino_codigo = '7867'
+*/
+
+
 INSERT INTO SQLeros.DetalleAlquiler (detallealq_alquiler, detallealq_nro_periodo_final, detallealq_nro_periodo_inicial, detallealq_precio)
-SELECT ALQUILER_CODIGO, DETALLE_ALQ_NRO_PERIODO_FIN, DETALLE_ALQ_NRO_PERIODO_INI, DETALLE_ALQ_PRECIO FROM gd_esquema.Maestra
+SELECT alquiler_codigo, DETALLE_ALQ_NRO_PERIODO_FIN, DETALLE_ALQ_NRO_PERIODO_INI, DETALLE_ALQ_PRECIO FROM gd_esquema.Maestra
+JOIN SQLeros.Alquiler ON alq_codigo_maestra = ALQUILER_CODIGO
 
 INSERT INTO SQLeros.Venta (venta_codigo, venta_anuncio, venta_comision, venta_comprador, venta_fecha, venta_moneda, venta_precio)
 SELECT DISTINCT VENTA_CODIGO, anuncio_codigo, VENTA_COMISION, comprador_codigo, VENTA_FECHA, moneda_codigo, VENTA_PRECIO_VENTA
@@ -606,10 +616,11 @@ WHERE PAGO_VENTA_MEDIO_PAGO IS NOT NULL
 AND PAGO_VENTA_MEDIO_PAGO NOT IN (SELECT medio_nombre FROM SQLeros.MedioDePago)
 
 
-INSERT INTO SQLeros.PagoAlquiler (pagoalq_codigo, pagoalq_descripcion_periodo, pagoalq_fecha, pagoalq_fecha_fin, pagoalq_fecha_inicio, pagoalq_importe, pagoalq_medio, pagoalq_nro_periodo, pagoalq_vencimiento)
-SELECT DISTINCT PAGO_ALQUILER_CODIGO, PAGO_ALQUILER_DESC, PAGO_ALQUILER_FECHA, PAGO_ALQUILER_FEC_FIN, PAGO_ALQUILER_FEC_INI, PAGO_ALQUILER_IMPORTE, medio_codigo, PAGO_ALQUILER_NRO_PERIODO, PAGO_ALQUILER_FECHA_VENCIMIENTO
+INSERT INTO SQLeros.PagoAlquiler (pagoalq_codigo_maestra, pagoalq_alquiler, pagoalq_descripcion_periodo, pagoalq_fecha, pagoalq_fecha_fin, pagoalq_fecha_inicio, pagoalq_importe, pagoalq_medio, pagoalq_nro_periodo, pagoalq_vencimiento)
+SELECT DISTINCT PAGO_ALQUILER_CODIGO, alq_codigo, PAGO_ALQUILER_DESC, PAGO_ALQUILER_FECHA, PAGO_ALQUILER_FEC_FIN, PAGO_ALQUILER_FEC_INI, PAGO_ALQUILER_IMPORTE, medio_codigo, PAGO_ALQUILER_NRO_PERIODO, PAGO_ALQUILER_FECHA_VENCIMIENTO
 FROM gd_esquema.Maestra
 JOIN SQLeros.MedioDePago ON medio_nombre = PAGO_ALQUILER_MEDIO_PAGO
+JOIN SQLeros.Alquiler ON alq_codigo_maestra = ALQUILER_CODIGO 
 
 INSERT INTO SQLeros.PagoVenta(pagoventa_venta, pagoventa_importe, pagoventa_moneda, pagoventa_cotizacion, pagoventa_medio)
 SELECT DISTINCT VENTA_CODIGO, PAGO_VENTA_IMPORTE, moneda_codigo, PAGO_VENTA_COTIZACION, medio_codigo

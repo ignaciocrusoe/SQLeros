@@ -138,7 +138,7 @@ CREATE TABLE SQLeros. CaracteristicaInmueblePorInmueble(
 GO
 
 CREATE TABLE SQLeros.Anuncio(
-	anu_codigo INT IDENTITY PRIMARY KEY,
+	anu_codigo INT PRIMARY KEY,
 	anu_agente INT,
 	anu_inmueble INT,
 	anu_sucursal INT,
@@ -565,8 +565,8 @@ SELECT DISTINCT ANUNCIO_TIPO_PERIODO FROM gd_esquema.Maestra
 WHERE ANUNCIO_TIPO_PERIODO IS NOT NULL
 
 -- Es muy lento
-INSERT INTO SQLeros.Anuncio (anu_agente, anu_inmueble, anu_sucursal, anu_fecha_pub, anu_precio, anu_costo, anu_fecha_fin, anu_tipo_op, anu_moneda, anu_estado, anu_tipo_periodo)
-SELECT agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
+INSERT INTO SQLeros.Anuncio (anu_codigo, anu_agente, anu_inmueble, anu_sucursal, anu_fecha_pub, anu_precio, anu_costo, anu_fecha_fin, anu_tipo_op, anu_moneda, anu_estado, anu_tipo_periodo)
+SELECT ANUNCIO_CODIGO, agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
 FROM gd_esquema.Maestra
 JOIN SQLeros.Persona ON pers_dni = AGENTE_DNI
 JOIN SQLeros.Agente ON agen_persona = pers_codigo
@@ -576,11 +576,16 @@ JOIN SQLeros.TipoOperacion ON tipooperacion_descripcion = ANUNCIO_TIPO_OPERACION
 JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
 JOIN SQLeros.TipoPeriodo ON tipoperiodo_descripcion = ANUNCIO_TIPO_PERIODO
 JOIN SQLeros.Moneda ON moneda_nombre = ANUNCIO_MONEDA
-GROUP BY agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
+GROUP BY ANUNCIO_CODIGO, agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
 
+INSERT INTO SQLeros.Alquiler (alq_anuncio, alq_cant_periodos, alq_comision, alq_depositio, alq_estado, alq_fecha_fin, alq_fecha_inicio, alq_gastos, alq_inquilino, alq_precio)
+SELECT ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, estadoanuncio_codigo, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, inquilino_codigo, ANUNCIO_PRECIO_PUBLICADO FROM gd_esquema.Maestra
+JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
+JOIN SQLeros.Persona ON pers_dni = INQUILINO_DNI
+JOIN SQLeros.Inquilino ON inquilino_persona = pers_codigo
 
-SELECT DISTINCT INMUEBLE_CODIGO FROM gd_esquema.Maestra
 /*
+SELECT DISTINCT INMUEBLE_CODIGO FROM gd_esquema.Maestra
 SELECT inm_descripcion, caracteristicainmueble_descripcion FROM SQLeros.CaracteristicaInmueblePorInmueble
 JOIN SQLeros.Inmueble ON inm_codigo = caracteristicainmuebleporinmueble_inmueble
 JOIN SQLeros.CaracteristicaInmueble ON caracteristicainmueble_codigo = caracteristicainmuebleporinmueble_caracteristica
@@ -610,5 +615,5 @@ Select * from gd_esquema.Maestra where AGENTE_NOMBRE is not NULL
 SELECT distinct pers_dni from SQLeros.Persona
 SELECT distinct inm_nombre from SQLeros.Inmueble
 
-SELECT * FROM SQLeros.Anuncio
+SELECT * FROM SQLeros.Alquiler
 */

@@ -212,22 +212,21 @@ CREATE TABLE SQLeros.DetalleAlquiler(
 GO
 
 CREATE TABLE SQLeros.PagoAlquiler(
-	pagoalq_codigo INT IDENTITY PRIMARY KEY,
-	pagoalq_detalle VARCHAR(100),
+	pagoalq_codigo INT PRIMARY KEY,
 	pagoalq_fecha SMALLDATETIME,
 	pagoalq_nro_periodo INT,
-	pagoalq_descripcion_periodo INT,
+	pagoalq_descripcion_periodo VARCHAR(100),
 	pagoalq_fecha_inicio SMALLDATETIME,
 	pagoalq_fecha_fin SMALLDATETIME,
 	pagoalq_importe DECIMAL(12,2),
-	pagoalq_medio INT
+	pagoalq_medio INT,
+	pagoalq_vencimiento SMALLDATETIME
 )
 GO
 
 CREATE TABLE SQLeros.MedioDePago(
 	medio_codigo INT IDENTITY PRIMARY KEY,
-	medio_nombre VARCHAR(10),
-	medio_descripcion VARCHAR(100)
+	medio_nombre VARCHAR(25),
 )
 GO
 
@@ -597,6 +596,20 @@ JOIN SQLeros.Persona ON pers_dni = COMPRADOR_DNI
 JOIN SQLeros.Comprador ON comprador_persona = pers_codigo
 JOIN SQLeros.Moneda ON moneda_nombre = VENTA_MONEDA
 
+INSERT INTO SQLeros.MedioDePago (medio_nombre)
+SELECT DISTINCT PAGO_ALQUILER_MEDIO_PAGO FROM gd_esquema.Maestra
+WHERE PAGO_ALQUILER_MEDIO_PAGO IS NOT NULL
+
+INSERT INTO SQLeros.MedioDePago (medio_nombre)
+SELECT DISTINCT PAGO_VENTA_MEDIO_PAGO FROM gd_esquema.Maestra
+WHERE PAGO_VENTA_MEDIO_PAGO IS NOT NULL
+AND PAGO_VENTA_MEDIO_PAGO NOT IN (SELECT medio_nombre FROM SQLeros.MedioDePago)
+
+
+INSERT INTO SQLeros.PagoAlquiler (pagoalq_codigo, pagoalq_descripcion_periodo, pagoalq_fecha, pagoalq_fecha_fin, pagoalq_fecha_inicio, pagoalq_importe, pagoalq_medio, pagoalq_nro_periodo, pagoalq_vencimiento)
+SELECT DISTINCT PAGO_ALQUILER_CODIGO, PAGO_ALQUILER_DESC, PAGO_ALQUILER_FECHA, PAGO_ALQUILER_FEC_FIN, PAGO_ALQUILER_FEC_INI, PAGO_ALQUILER_IMPORTE, medio_codigo, PAGO_ALQUILER_NRO_PERIODO, PAGO_ALQUILER_FECHA_VENCIMIENTO
+FROM gd_esquema.Maestra
+JOIN SQLeros.MedioDePago ON medio_nombre = PAGO_ALQUILER_MEDIO_PAGO
 /*
 SELECT DISTINCT INMUEBLE_CODIGO FROM gd_esquema.Maestra
 SELECT inm_descripcion, caracteristicainmueble_descripcion FROM SQLeros.CaracteristicaInmueblePorInmueble

@@ -85,6 +85,12 @@ DROP TABLE SQLeros.Ambientes;
 IF OBJECT_ID('SQLeros.TipoInmueble', 'U') IS NOT NULL
 DROP TABLE SQLeros.TipoInmueble;
 
+IF OBJECT_ID('SQLeros.Moneda', 'U') IS NOT NULL
+DROP TABLE SQLeros.Moneda;
+
+IF OBJECT_ID('SQLeros.TipoPeriodo', 'U') IS NOT NULL
+DROP TABLE SQLeros.TipoPeriodo;
+
 /*CREACIÓN DE LAS TABLAS*/
 
 -- Creo la tabla Persona porque hay que almacenar los mismos datos para un propietario o inquilino
@@ -314,6 +320,19 @@ CREATE TABLE SQLeros.TipoInmueble(
 )
 GO
 
+CREATE TABLE SQLeros.Moneda(
+	moneda_codigo INT IDENTITY PRIMARY KEY,
+	moneda_nombre VARCHAR(20),
+	moneda_eq_pesos decimal(8,2)
+)
+GO
+
+CREATE TABLE SQLeros.TipoPeriodo(
+	tipoperiodo_codigo INT IDENTITY PRIMARY KEY,
+	periodo_descripcion VARCHAR(20)
+)
+GO
+
 /*MIGRACIÓN*/
 
 INSERT INTO SQLeros.EstadoInmueble(estadoinmueble_descripcion)
@@ -358,6 +377,17 @@ WHERE INMUEBLE_ORIENTACION IS NOT NULL
 INSERT INTO SQLeros.Disposicion(disposicion_descripcion)
 SELECT DISTINCT INMUEBLE_DISPOSICION FROM gd_esquema.Maestra
 WHERE INMUEBLE_DISPOSICION IS NOT NULL
+
+INSERT INTO SQLeros.Moneda (moneda_nombre)
+SELECT DISTINCT ANUNCIO_MONEDA FROM gd_esquema.Maestra
+
+INSERT INTO SQLeros.Moneda (moneda_nombre)
+SELECT DISTINCT ANUNCIO_MONEDA FROM gd_esquema.Maestra
+WHERE PAGO_VENTA_MONEDA NOT IN (SELECT moneda_nombre FROM SQLeros.Moneda)
+
+INSERT INTO SQLeros.Moneda (moneda_nombre)
+SELECT DISTINCT ANUNCIO_MONEDA FROM gd_esquema.Maestra
+WHERE VENTA_MONEDA NOT IN (SELECT moneda_nombre FROM SQLeros.Moneda)
 
 INSERT INTO SQLeros.Ubicacion(ubicacion_barrio, ubicacion_localidad, ubicacion_provincia)
 SELECT barrio_codigo, localidad_codigo, provincia_codigo FROM gd_esquema.Maestra
@@ -518,8 +548,20 @@ INSERT INTO SQLeros.Agente (agen_persona, agen_sucursal)
 SELECT distinct pers_codigo, sucur_codigo FROM SQLeros.Persona
 left join gd_esquema.Maestra on AGENTE_DNI = pers_dni
 join SQLeros.sucursal on SUCURSAL_NOMBRE = SQLeros.sucursal.sucur_nombre
-
 WHERE pers_dni IN (SELECT AGENTE_DNI FROM gd_esquema.Maestra)
+
+INSERT INTO SQLeros.Anuncio (anu_agente, anu_inmueble, anu_sucursal, anu_fecha_pub, anu_precio, anu_costo, anu_fecha_fin, anu_tipo_op, anu_moneda, anu_estado, anu_tipo_periodo)
+SELECT agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
+FROM gd_esquema.Maestra
+JOIN SQLeros.Agente ON AGENTE_DNI = (SELECT pers_dni FROM SQLeros.Persona LEFT JOIN SQLeros.Agente ON pers_codigo = agen_persona)
+JOIN SQLeros.Inmueble ON inm_nombre = INMUEBLE_NOMBRE
+JOIN SQLeros.Sucursal ON sucur_nombre = SUCURSAL_NOMBRE
+JOIN SQLeros.TipoOperacion ON tipooperacion_codigo = ANUNCIO_TIPO_OPERACION
+JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
+JOIN SQLeros.TipoPeriodo ON tipoperiodo_codigo = ANUNCIO_TIPO_PERIODO
+JOIN SQLeros.Moneda ON moneda_codigo = ANUNCIO_MONEDA
+GROUP BY agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
+
 
 
 /*

@@ -570,7 +570,7 @@ SELECT agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUN
 FROM gd_esquema.Maestra
 JOIN SQLeros.Persona ON pers_dni = AGENTE_DNI
 JOIN SQLeros.Agente ON agen_persona = pers_codigo
-JOIN SQLeros.Inmueble ON inm_nombre = INMUEBLE_NOMBRE
+JOIN SQLeros.Inmueble ON inm_nombre = INMUEBLE_NOMBRE -- No sirve. El nombre es mismo para todos ####################################
 JOIN SQLeros.Sucursal ON sucur_nombre = SUCURSAL_NOMBRE
 JOIN SQLeros.TipoOperacion ON tipooperacion_descripcion = ANUNCIO_TIPO_OPERACION
 JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
@@ -607,6 +607,7 @@ WHERE ubicacion_barrio IS NULL
 SELECT * FROM SQLeros.Sucursal
 
 Select * from gd_esquema.Maestra where AGENTE_NOMBRE is not NULL
-SELECT * from SQLeros.Agente
+SELECT distinct pers_dni from SQLeros.Persona
+SELECT distinct inm_nombre from SQLeros.Inmueble
 
 */

@@ -108,7 +108,7 @@ CREATE TABLE SQLeros.Persona(
 END
 
 CREATE TABLE SQLeros.Inmueble(
-	inm_codigo INT IDENTITY PRIMARY KEY,
+	inm_codigo INT PRIMARY KEY,
 	inm_nombre VARCHAR(50),
 	inm_descripcion VARCHAR(50),
 	inm_direccion VARCHAR(100),
@@ -458,8 +458,8 @@ SELECT COMPRADOR_DNI FROM gd_esquema.Maestra
 
 -- Agente se carga despues de cargar las sucursales
 
-INSERT INTO SQLeros.Inmueble (inm_descripcion, inm_ambientes, inm_direccion, inm_disposicion, inm_estado, inm_expensas, inm_ubicacion, inm_superficie, inm_antiguedad, inm_tipo, inm_nombre, inm_orientacion)
-SELECT DISTINCT INMUEBLE_DESCRIPCION, ambientes_codigo, INMUEBLE_DIRECCION, disposicion_codigo, estadoinmueble_codigo, INMUEBLE_EXPESAS, ubicacion_codigo, INMUEBLE_SUPERFICIETOTAL, INMUEBLE_ANTIGUEDAD, tipoinmueble_codigo, INMUEBLE_NOMBRE, orientacion_codigo
+INSERT INTO SQLeros.Inmueble (inm_codigo, inm_descripcion, inm_ambientes, inm_direccion, inm_disposicion, inm_estado, inm_expensas, inm_ubicacion, inm_superficie, inm_antiguedad, inm_tipo, inm_nombre, inm_orientacion)
+SELECT DISTINCT INMUEBLE_CODIGO, INMUEBLE_DESCRIPCION, ambientes_codigo, INMUEBLE_DIRECCION, disposicion_codigo, estadoinmueble_codigo, INMUEBLE_EXPESAS, ubicacion_codigo, INMUEBLE_SUPERFICIETOTAL, INMUEBLE_ANTIGUEDAD, tipoinmueble_codigo, INMUEBLE_NOMBRE, orientacion_codigo
 FROM gd_esquema.Maestra
 LEFT JOIN SQLeros.Ambientes ON  INMUEBLE_CANT_AMBIENTES = ambientes_cantidad
 LEFT JOIN SQLeros.Disposicion ON  INMUEBLE_DISPOSICION = disposicion_descripcion
@@ -477,7 +477,7 @@ JOIN SQLeros.Ubicacion ON ubicacion_codigo = (
 	AND INMUEBLE_PROVINCIA = provincia_descripcion
 	)
 WHERE INMUEBLE_CODIGO IS NOT NULL
-GROUP BY INMUEBLE_DESCRIPCION, ambientes_codigo, INMUEBLE_DIRECCION, disposicion_codigo, estadoinmueble_codigo, INMUEBLE_EXPESAS, ubicacion_codigo, INMUEBLE_SUPERFICIETOTAL, INMUEBLE_ANTIGUEDAD, tipoinmueble_codigo, INMUEBLE_NOMBRE, orientacion_codigo
+GROUP BY INMUEBLE_CODIGO, INMUEBLE_DESCRIPCION, ambientes_codigo, INMUEBLE_DIRECCION, disposicion_codigo, estadoinmueble_codigo, INMUEBLE_EXPESAS, ubicacion_codigo, INMUEBLE_SUPERFICIETOTAL, INMUEBLE_ANTIGUEDAD, tipoinmueble_codigo, INMUEBLE_NOMBRE, orientacion_codigo
 
 
 INSERT INTO SQLeros.CaracteristicaInmueblePorInmueble (caracteristicainmuebleporinmueble_inmueble, caracteristicainmuebleporinmueble_caracteristica)
@@ -570,7 +570,7 @@ SELECT agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUN
 FROM gd_esquema.Maestra
 JOIN SQLeros.Persona ON pers_dni = AGENTE_DNI
 JOIN SQLeros.Agente ON agen_persona = pers_codigo
-JOIN SQLeros.Inmueble ON inm_nombre = INMUEBLE_NOMBRE -- No sirve. El nombre es mismo para todos ####################################
+JOIN SQLeros.Inmueble ON inm_codigo = INMUEBLE_CODIGO
 JOIN SQLeros.Sucursal ON sucur_nombre = SUCURSAL_NOMBRE
 JOIN SQLeros.TipoOperacion ON tipooperacion_descripcion = ANUNCIO_TIPO_OPERACION
 JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
@@ -579,7 +579,7 @@ JOIN SQLeros.Moneda ON moneda_nombre = ANUNCIO_MONEDA
 GROUP BY agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
 
 
-
+SELECT DISTINCT INMUEBLE_CODIGO FROM gd_esquema.Maestra
 /*
 SELECT inm_descripcion, caracteristicainmueble_descripcion FROM SQLeros.CaracteristicaInmueblePorInmueble
 JOIN SQLeros.Inmueble ON inm_codigo = caracteristicainmuebleporinmueble_inmueble
@@ -610,4 +610,5 @@ Select * from gd_esquema.Maestra where AGENTE_NOMBRE is not NULL
 SELECT distinct pers_dni from SQLeros.Persona
 SELECT distinct inm_nombre from SQLeros.Inmueble
 
+SELECT * FROM SQLeros.Anuncio
 */

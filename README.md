@@ -1,2 +1,2 @@
 # SQLeros
-![DER](Entrega_1_DER/DER-GDD-Avance-2.jpg)
+![DER](Entrega_2_MIGRACION/DER-GDD-CORRECCION-2.jpg)

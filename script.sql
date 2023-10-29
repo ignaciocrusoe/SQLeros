@@ -1,8 +1,7 @@
-/*
 CREATE SCHEMA SQLeros
 GO
-*/
-use GD2C2023
+
+USE GD2C2023
 
 IF OBJECT_ID('SQLeros.Persona', 'U') IS NOT NULL
 DROP TABLE SQLeros.Persona;

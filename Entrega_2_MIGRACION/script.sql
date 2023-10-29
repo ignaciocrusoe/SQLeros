@@ -90,7 +90,7 @@ DROP TABLE SQLeros.Moneda;
 IF OBJECT_ID('SQLeros.TipoPeriodo', 'U') IS NOT NULL
 DROP TABLE SQLeros.TipoPeriodo;
 
-/*CREACIÓN DE LAS TABLAS*/
+/*CREACIÃ“N DE LAS TABLAS*/
 
 -- Creo la tabla Persona porque hay que almacenar los mismos datos para un propietario o inquilino
 BEGIN
@@ -335,7 +335,7 @@ CREATE TABLE SQLeros.TipoPeriodo(
 )
 GO
 
-/*MIGRACIÓN*/
+/*MIGRACIÃ“N*/
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarEstadoInmueble')
 	DROP PROCEDURE SQLeros.MigrarEstadoInmueble
@@ -494,7 +494,7 @@ CREATE PROCEDURE SQLeros.MigrarCaracteristicaInmueble
 			
 			INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('Cable')
 			
-			INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('Calefacción')
+			INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('CalefacciÃ³n')
 			
 			INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('Gas')
 		END
@@ -604,18 +604,6 @@ CREATE PROCEDURE SQLeros.MigrarInmueble
 		END
 GO
 
-
-
-
-
-
-
-
-
-
-
-
-
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarCaracteristicaInmueblePorInmueble')
 	DROP PROCEDURE SQLeros.MigrarCaracteristicaInmueblePorInmueble
 GO
@@ -649,7 +637,7 @@ CREATE PROCEDURE SQLeros.MigrarCaracteristicaInmueblePorInmueble
 			GROUP BY inm_codigo
 			
 			INSERT INTO SQLeros.CaracteristicaInmueblePorInmueble (caracteristicainmuebleporinmueble_inmueble, caracteristicainmuebleporinmueble_caracteristica)
-			SELECT inm_codigo, (SELECT caracteristicainmueble_codigo FROM SQLeros.CaracteristicaInmueble WHERE caracteristicainmueble_descripcion = 'Calefacción')
+			SELECT inm_codigo, (SELECT caracteristicainmueble_codigo FROM SQLeros.CaracteristicaInmueble WHERE caracteristicainmueble_descripcion = 'CalefacciÃ³n')
 			FROM SQLeros.Inmueble
 			JOIN gd_esquema.Maestra ON inm_descripcion =  INMUEBLE_DESCRIPCION
 			AND inm_ambientes = (SELECT ambientes_codigo FROM SQLeros.Ambientes WHERE ambientes_cantidad = INMUEBLE_CANT_AMBIENTES)

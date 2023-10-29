@@ -337,214 +337,352 @@ GO
 
 /*MIGRACIÓN*/
 
-INSERT INTO SQLeros.EstadoInmueble(estadoinmueble_descripcion)
-SELECT DISTINCT INMUEBLE_ESTADO FROM gd_esquema.Maestra
-WHERE INMUEBLE_ESTADO IS NOT NULL
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarInmueble')
+	DROP PROCEDURE SQLeros.MigrarInmueble
+GO
+CREATE PROCEDURE SQLeros.MigrarInmueble
+	AS
+		BEGIN
+			INSERT INTO SQLeros.EstadoInmueble(estadoinmueble_descripcion)
+			SELECT DISTINCT INMUEBLE_ESTADO FROM gd_esquema.Maestra
+			WHERE INMUEBLE_ESTADO IS NOT NULL
+		END
+GO
 
-INSERT INTO SQLeros.TipoInmueble(tipoinmueble_descripcion)
-SELECT DISTINCT INMUEBLE_TIPO_INMUEBLE FROM gd_esquema.Maestra
-WHERE INMUEBLE_TIPO_INMUEBLE IS NOT NULL
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarTipoInmueble')
+	DROP PROCEDURE SQLeros.MigrarTipoInmueble
+GO
+CREATE PROCEDURE SQLeros.MigrarTipoInmueble
+	AS
+		BEGIN
+			INSERT INTO SQLeros.TipoInmueble(tipoinmueble_descripcion)
+			SELECT DISTINCT INMUEBLE_TIPO_INMUEBLE FROM gd_esquema.Maestra
+			WHERE INMUEBLE_TIPO_INMUEBLE IS NOT NULL
+		END
+GO
 
-INSERT INTO SQLeros.Ambientes(ambientes_cantidad)
-SELECT DISTINCT INMUEBLE_CANT_AMBIENTES FROM gd_esquema.Maestra
-WHERE INMUEBLE_CANT_AMBIENTES IS NOT NULL
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarAmbientes')
+	DROP PROCEDURE SQLeros.MigrarAmbientes
+GO
+CREATE PROCEDURE SQLeros.MigrarAmbientes
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Ambientes(ambientes_cantidad)
+			SELECT DISTINCT INMUEBLE_CANT_AMBIENTES FROM gd_esquema.Maestra
+			WHERE INMUEBLE_CANT_AMBIENTES IS NOT NULL
+		END
+GO
 
-INSERT INTO SQLeros.Provincia(provincia_descripcion)
-SELECT DISTINCT INMUEBLE_PROVINCIA FROM gd_esquema.Maestra
-WHERE INMUEBLE_PROVINCIA IS NOT NULL
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarProvincia')
+	DROP PROCEDURE SQLeros.MigrarProvincia
+GO
+CREATE PROCEDURE SQLeros.MigrarProvincia
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Provincia(provincia_descripcion)
+			SELECT DISTINCT INMUEBLE_PROVINCIA FROM gd_esquema.Maestra
+			WHERE INMUEBLE_PROVINCIA IS NOT NULL
+		
+			INSERT INTO SQLeros.Provincia(provincia_descripcion)
+			SELECT DISTINCT SUCURSAL_PROVINCIA FROM gd_esquema.Maestra
+			WHERE SUCURSAL_PROVINCIA IS NOT NULL
+			AND SUCURSAL_PROVINCIA NOT IN (SELECT provincia_descripcion FROM SQLeros.Provincia)
+		END
+GO
 
-INSERT INTO SQLeros.Provincia(provincia_descripcion)
-SELECT DISTINCT SUCURSAL_PROVINCIA FROM gd_esquema.Maestra
-WHERE SUCURSAL_PROVINCIA IS NOT NULL
-AND SUCURSAL_PROVINCIA NOT IN (SELECT provincia_descripcion FROM SQLeros.Provincia)
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarBarrio')
+	DROP PROCEDURE SQLeros.MigrarBarrio
+GO
+CREATE PROCEDURE SQLeros.MigrarBarrio
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Barrio(barrio_descripcion)
+			SELECT DISTINCT INMUEBLE_BARRIO FROM gd_esquema.Maestra
+			GROUP BY INMUEBLE_BARRIO
+		END
+GO
 
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarBarrio')
+	DROP PROCEDURE SQLeros.MigrarBarrio
+GO
+CREATE PROCEDURE SQLeros.MigrarBarrio
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Localidad(localidad_descripcion)
+			SELECT DISTINCT INMUEBLE_LOCALIDAD FROM gd_esquema.Maestra
+			WHERE INMUEBLE_LOCALIDAD IS NOT NULL
+			
+			INSERT INTO SQLeros.Localidad(localidad_descripcion)
+			SELECT DISTINCT SUCURSAL_LOCALIDAD FROM gd_esquema.Maestra
+			WHERE SUCURSAL_LOCALIDAD IS NOT NULL
+			AND SUCURSAL_LOCALIDAD NOT IN (SELECT localidad_descripcion FROM SQLeros.Localidad)
+		END
+GO
 
-INSERT INTO SQLeros.Barrio(barrio_descripcion)
-SELECT DISTINCT INMUEBLE_BARRIO FROM gd_esquema.Maestra
-GROUP BY INMUEBLE_BARRIO
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarOrientacion')
+	DROP PROCEDURE SQLeros.MigrarOrientacion
+GO
+CREATE PROCEDURE SQLeros.MigrarOrientacion
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Orientacion(orientacion_descripcion)
+			SELECT DISTINCT INMUEBLE_ORIENTACION FROM gd_esquema.Maestra
+			WHERE INMUEBLE_ORIENTACION IS NOT NULL
+		END
+GO
 
-INSERT INTO SQLeros.Localidad(localidad_descripcion)
-SELECT DISTINCT INMUEBLE_LOCALIDAD FROM gd_esquema.Maestra
-WHERE INMUEBLE_LOCALIDAD IS NOT NULL
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarDisposicion')
+	DROP PROCEDURE SQLeros.MigrarDisposicion
+GO
+CREATE PROCEDURE SQLeros.MigrarDisposicion
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Disposicion(disposicion_descripcion)
+			SELECT DISTINCT INMUEBLE_DISPOSICION FROM gd_esquema.Maestra
+			WHERE INMUEBLE_DISPOSICION IS NOT NULL
+		END
+GO
 
-INSERT INTO SQLeros.Localidad(localidad_descripcion)
-SELECT DISTINCT SUCURSAL_LOCALIDAD FROM gd_esquema.Maestra
-WHERE SUCURSAL_LOCALIDAD IS NOT NULL
-AND SUCURSAL_LOCALIDAD NOT IN (SELECT localidad_descripcion FROM SQLeros.Localidad)
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarMoneda')
+	DROP PROCEDURE SQLeros.MigrarMoneda
+GO
+CREATE PROCEDURE SQLeros.MigrarMoneda
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Moneda (moneda_nombre)
+			SELECT DISTINCT ANUNCIO_MONEDA FROM gd_esquema.Maestra
+			
+			INSERT INTO SQLeros.Moneda (moneda_nombre)
+			SELECT DISTINCT PAGO_VENTA_MONEDA FROM gd_esquema.Maestra
+			WHERE PAGO_VENTA_MONEDA NOT IN (SELECT moneda_nombre FROM SQLeros.Moneda)
+			
+			INSERT INTO SQLeros.Moneda (moneda_nombre)
+			SELECT DISTINCT VENTA_MONEDA FROM gd_esquema.Maestra
+			WHERE VENTA_MONEDA NOT IN (SELECT moneda_nombre FROM SQLeros.Moneda)
+		END
+GO
 
-INSERT INTO SQLeros.Orientacion(orientacion_descripcion)
-SELECT DISTINCT INMUEBLE_ORIENTACION FROM gd_esquema.Maestra
-WHERE INMUEBLE_ORIENTACION IS NOT NULL
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarUbicacion')
+	DROP PROCEDURE SQLeros.MigrarUbicacion
+GO
+CREATE PROCEDURE SQLeros.MigrarUbicacion
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Ubicacion(ubicacion_barrio, ubicacion_localidad, ubicacion_provincia)
+			SELECT barrio_codigo, localidad_codigo, provincia_codigo FROM gd_esquema.Maestra
+			JOIN SQLeros.Barrio ON barrio_descripcion = INMUEBLE_BARRIO
+			JOIN SQLeros.Localidad ON localidad_descripcion = INMUEBLE_LOCALIDAD
+			JOIN SQLeros.Provincia ON provincia_descripcion = INMUEBLE_PROVINCIA
+			GROUP BY barrio_codigo, localidad_codigo, provincia_codigo
+			
+			INSERT INTO SQLeros.Ubicacion(ubicacion_localidad, ubicacion_provincia)
+			SELECT localidad_codigo, provincia_codigo FROM gd_esquema.Maestra
+			LEFT JOIN SQLeros.Localidad ON localidad_descripcion = SUCURSAL_LOCALIDAD
+			LEFT JOIN SQLeros.Provincia ON provincia_descripcion = SUCURSAL_PROVINCIA
+			WHERE SUCURSAL_LOCALIDAD IS NOT NULL
+			GROUP BY localidad_codigo, provincia_codigo
+		END
+GO
 
-INSERT INTO SQLeros.Disposicion(disposicion_descripcion)
-SELECT DISTINCT INMUEBLE_DISPOSICION FROM gd_esquema.Maestra
-WHERE INMUEBLE_DISPOSICION IS NOT NULL
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarCaracteristicaInmueble')
+	DROP PROCEDURE SQLeros.MigrarCaracteristicaInmueble
+GO
+CREATE PROCEDURE SQLeros.MigrarCaracteristicaInmueble
+	AS
+		BEGIN
+			INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('WiFi')
+			
+			INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('Cable')
+			
+			INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('Calefacción')
+			
+			INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('Gas')
+		END
+GO
 
-INSERT INTO SQLeros.Moneda (moneda_nombre)
-SELECT DISTINCT ANUNCIO_MONEDA FROM gd_esquema.Maestra
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarPersona')
+	DROP PROCEDURE SQLeros.MigrarPersona
+GO
+CREATE PROCEDURE SQLeros.MigrarPersona
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Persona(pers_dni, pers_nombre, pers_apellido, pers_mail, pers_telefono, pers_fecha_nac, pers_fecha_reg)
+			SELECT DISTINCT PROPIETARIO_DNI, PROPIETARIO_NOMBRE, PROPIETARIO_APELLIDO, PROPIETARIO_MAIL, PROPIETARIO_TELEFONO, PROPIETARIO_FECHA_NAC, PROPIETARIO_FECHA_REGISTRO FROM gd_esquema.Maestra
+			WHERE PROPIETARIO_DNI IS NOT NULL
+			
+			INSERT INTO SQLeros.Persona(pers_dni, pers_nombre, pers_apellido, pers_mail, pers_telefono, pers_fecha_nac, pers_fecha_reg)
+			SELECT DISTINCT AGENTE_DNI, AGENTE_NOMBRE, AGENTE_APELLIDO, AGENTE_MAIL, AGENTE_TELEFONO, AGENTE_FECHA_NAC, AGENTE_FECHA_REGISTRO
+			FROM gd_esquema.Maestra
+			WHERE AGENTE_DNI IS NOT NULL AND AGENTE_DNI NOT IN (
+			SELECT pers_dni FROM SQLeros.Persona
+			)
+			
+			INSERT INTO SQLeros.Persona(pers_dni, pers_nombre, pers_apellido, pers_mail, pers_telefono, pers_fecha_nac, pers_fecha_reg)
+			SELECT DISTINCT INQUILINO_DNI, INQUILINO_NOMBRE, INQUILINO_APELLIDO, INQUILINO_MAIL, INQUILINO_TELEFONO, INQUILINO_FECHA_NAC, INQUILINO_FECHA_REGISTRO
+			FROM gd_esquema.Maestra
+			WHERE INQUILINO_DNI IS NOT NULL AND INQUILINO_DNI NOT IN (
+			SELECT pers_dni FROM SQLeros.Persona
+			)
+			
+			INSERT INTO SQLeros.Persona(pers_dni, pers_nombre, pers_apellido, pers_mail, pers_telefono, pers_fecha_nac, pers_fecha_reg)
+			SELECT DISTINCT COMPRADOR_DNI, COMPRADOR_NOMBRE, COMPRADOR_APELLIDO, COMPRADOR_MAIL, COMPRADOR_TELEFONO, COMPRADOR_FECHA_NAC, COMPRADOR_FECHA_REGISTRO
+			FROM gd_esquema.Maestra
+			WHERE COMPRADOR_DNI IS NOT NULL AND COMPRADOR_DNI NOT IN (
+			SELECT pers_dni FROM SQLeros.Persona
+			)
+		END
+GO
 
-INSERT INTO SQLeros.Moneda (moneda_nombre)
-SELECT DISTINCT PAGO_VENTA_MONEDA FROM gd_esquema.Maestra
-WHERE PAGO_VENTA_MONEDA NOT IN (SELECT moneda_nombre FROM SQLeros.Moneda)
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarPropietario')
+	DROP PROCEDURE SQLeros.MigrarPropietario
+GO
+CREATE PROCEDURE SQLeros.MigrarPropietario
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Propietario (propietario_persona)
+			SELECT pers_codigo FROM SQLeros.Persona
+			WHERE pers_dni IN (
+			SELECT PROPIETARIO_DNI FROM gd_esquema.Maestra
+			)
+		END
+GO
 
-INSERT INTO SQLeros.Moneda (moneda_nombre)
-SELECT DISTINCT VENTA_MONEDA FROM gd_esquema.Maestra
-WHERE VENTA_MONEDA NOT IN (SELECT moneda_nombre FROM SQLeros.Moneda)
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarInquilino')
+	DROP PROCEDURE SQLeros.MigrarInquilino
+GO
+CREATE PROCEDURE SQLeros.MigrarInquilino
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Inquilino (inquilino_persona)
+			SELECT pers_codigo FROM SQLeros.Persona
+			WHERE pers_dni IN (
+			SELECT INQUILINO_DNI FROM gd_esquema.Maestra
+			)
+		END
+GO
 
-INSERT INTO SQLeros.Ubicacion(ubicacion_barrio, ubicacion_localidad, ubicacion_provincia)
-SELECT barrio_codigo, localidad_codigo, provincia_codigo FROM gd_esquema.Maestra
-JOIN SQLeros.Barrio ON barrio_descripcion = INMUEBLE_BARRIO
-JOIN SQLeros.Localidad ON localidad_descripcion = INMUEBLE_LOCALIDAD
-JOIN SQLeros.Provincia ON provincia_descripcion = INMUEBLE_PROVINCIA
-GROUP BY barrio_codigo, localidad_codigo, provincia_codigo
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarComprador')
+	DROP PROCEDURE SQLeros.MigrarComprador
+GO
+CREATE PROCEDURE SQLeros.MigrarComprador
+	AS
+		BEGIN
+			INSERT INTO SQLeros.comprador (comprador_persona)
+			SELECT pers_codigo FROM SQLeros.Persona
+			WHERE pers_dni IN (
+			SELECT COMPRADOR_DNI FROM gd_esquema.Maestra
+			)
+	END
+GO
 
-INSERT INTO SQLeros.Ubicacion(ubicacion_localidad, ubicacion_provincia)
-SELECT localidad_codigo, provincia_codigo FROM gd_esquema.Maestra
-LEFT JOIN SQLeros.Localidad ON localidad_descripcion = SUCURSAL_LOCALIDAD
-LEFT JOIN SQLeros.Provincia ON provincia_descripcion = SUCURSAL_PROVINCIA
-WHERE SUCURSAL_LOCALIDAD IS NOT NULL
-GROUP BY localidad_codigo, provincia_codigo
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarInmueble')
+	DROP PROCEDURE SQLeros.MigrarInmueble
+GO
+CREATE PROCEDURE SQLeros.MigrarInmueble
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Inmueble (inm_codigo, inm_descripcion, inm_ambientes, inm_direccion, inm_disposicion, inm_estado, inm_expensas, inm_ubicacion, inm_superficie, inm_antiguedad, inm_tipo, inm_nombre, inm_orientacion)
+			SELECT DISTINCT INMUEBLE_CODIGO, INMUEBLE_DESCRIPCION, ambientes_codigo, INMUEBLE_DIRECCION, disposicion_codigo, estadoinmueble_codigo, INMUEBLE_EXPESAS, ubicacion_codigo, INMUEBLE_SUPERFICIETOTAL, INMUEBLE_ANTIGUEDAD, tipoinmueble_codigo, INMUEBLE_NOMBRE, orientacion_codigo
+			FROM gd_esquema.Maestra
+			LEFT JOIN SQLeros.Ambientes ON  INMUEBLE_CANT_AMBIENTES = ambientes_cantidad
+			LEFT JOIN SQLeros.Disposicion ON  INMUEBLE_DISPOSICION = disposicion_descripcion
+			LEFT JOIN SQLeros.EstadoInmueble ON  INMUEBLE_ESTADO = estadoinmueble_descripcion
+			JOIN SQLeros.TipoInmueble ON tipoinmueble_descripcion = INMUEBLE_TIPO_INMUEBLE
+			JOIN SQLeros.Orientacion ON orientacion_descripcion = INMUEBLE_ORIENTACION
+			JOIN SQLeros.Ubicacion ON ubicacion_codigo = (
+				SELECT TOP 1 ubicacion_codigo	--Revisar el TOP 1
+				FROM SQLeros.Ubicacion A
+				JOIN SQLeros.Barrio ON barrio_codigo = A.ubicacion_barrio
+				JOIN SQLeros.Localidad ON localidad_codigo = A.ubicacion_localidad
+				JOIN SQLeros.Provincia ON provincia_codigo = A.ubicacion_provincia
+				WHERE INMUEBLE_BARRIO = barrio_descripcion
+				AND INMUEBLE_LOCALIDAD = localidad_descripcion
+				AND INMUEBLE_PROVINCIA = provincia_descripcion
+				)
+			WHERE INMUEBLE_CODIGO IS NOT NULL
+			GROUP BY INMUEBLE_CODIGO, INMUEBLE_DESCRIPCION, ambientes_codigo, INMUEBLE_DIRECCION, disposicion_codigo, estadoinmueble_codigo, INMUEBLE_EXPESAS, ubicacion_codigo, INMUEBLE_SUPERFICIETOTAL, INMUEBLE_ANTIGUEDAD, tipoinmueble_codigo, INMUEBLE_NOMBRE, orientacion_codigo
+		END
+GO
 
-INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('WiFi')
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarCaracteristicaInmueblePorInmueble')
+	DROP PROCEDURE SQLeros.MigrarCaracteristicaInmueblePorInmueble
+GO
+CREATE PROCEDURE SQLeros.MigrarCaracteristicaInmueblePorInmueble
+	AS
+		BEGIN
+			INSERT INTO SQLeros.CaracteristicaInmueblePorInmueble (caracteristicainmuebleporinmueble_inmueble, caracteristicainmuebleporinmueble_caracteristica)
+			SELECT inm_codigo, (SELECT caracteristicainmueble_codigo FROM SQLeros.CaracteristicaInmueble WHERE caracteristicainmueble_descripcion = 'Wifi')
+			FROM SQLeros.Inmueble
+			JOIN gd_esquema.Maestra ON inm_descripcion =  INMUEBLE_DESCRIPCION
+			AND inm_ambientes = (SELECT ambientes_codigo FROM SQLeros.Ambientes WHERE ambientes_cantidad = INMUEBLE_CANT_AMBIENTES)
+			AND inm_antiguedad = INMUEBLE_ANTIGUEDAD
+			AND inm_direccion = INMUEBLE_DIRECCION
+			AND inm_disposicion = (SELECT disposicion_codigo FROM SQLeros.Disposicion WHERE disposicion_descripcion = INMUEBLE_DISPOSICION) 
+			AND inm_estado = (SELECT estadoinmueble_codigo FROM SQLeros.EstadoInmueble WHERE estadoinmueble_descripcion = INMUEBLE_ESTADO)
+			AND inm_expensas = INMUEBLE_EXPESAS
+			WHERE INMUEBLE_CARACTERISTICA_WIFI = 1
+			GROUP BY inm_codigo
+			
+			INSERT INTO SQLeros.CaracteristicaInmueblePorInmueble (caracteristicainmuebleporinmueble_inmueble, caracteristicainmuebleporinmueble_caracteristica)
+			SELECT inm_codigo, (SELECT caracteristicainmueble_codigo FROM SQLeros.CaracteristicaInmueble WHERE caracteristicainmueble_descripcion = 'Cable')
+			FROM SQLeros.Inmueble
+			JOIN gd_esquema.Maestra ON inm_descripcion =  INMUEBLE_DESCRIPCION
+			AND inm_ambientes = (SELECT ambientes_codigo FROM SQLeros.Ambientes WHERE ambientes_cantidad = INMUEBLE_CANT_AMBIENTES)
+			AND inm_antiguedad = INMUEBLE_ANTIGUEDAD
+			AND inm_direccion = INMUEBLE_DIRECCION
+			AND inm_disposicion = (SELECT disposicion_codigo FROM SQLeros.Disposicion WHERE disposicion_descripcion = INMUEBLE_DISPOSICION) 
+			AND inm_estado = (SELECT estadoinmueble_codigo FROM SQLeros.EstadoInmueble WHERE estadoinmueble_descripcion = INMUEBLE_ESTADO)
+			AND inm_expensas = INMUEBLE_EXPESAS
+			WHERE INMUEBLE_CARACTERISTICA_CABLE = 1
+			GROUP BY inm_codigo
+			
+			INSERT INTO SQLeros.CaracteristicaInmueblePorInmueble (caracteristicainmuebleporinmueble_inmueble, caracteristicainmuebleporinmueble_caracteristica)
+			SELECT inm_codigo, (SELECT caracteristicainmueble_codigo FROM SQLeros.CaracteristicaInmueble WHERE caracteristicainmueble_descripcion = 'Calefacción')
+			FROM SQLeros.Inmueble
+			JOIN gd_esquema.Maestra ON inm_descripcion =  INMUEBLE_DESCRIPCION
+			AND inm_ambientes = (SELECT ambientes_codigo FROM SQLeros.Ambientes WHERE ambientes_cantidad = INMUEBLE_CANT_AMBIENTES)
+			AND inm_antiguedad = INMUEBLE_ANTIGUEDAD
+			AND inm_direccion = INMUEBLE_DIRECCION
+			AND inm_disposicion = (SELECT disposicion_codigo FROM SQLeros.Disposicion WHERE disposicion_descripcion = INMUEBLE_DISPOSICION) 
+			AND inm_estado = (SELECT estadoinmueble_codigo FROM SQLeros.EstadoInmueble WHERE estadoinmueble_descripcion = INMUEBLE_ESTADO)
+			AND inm_expensas = INMUEBLE_EXPESAS
+			WHERE INMUEBLE_CARACTERISTICA_CALEFACCION = 1
+			GROUP BY inm_codigo
+			
+			INSERT INTO SQLeros.CaracteristicaInmueblePorInmueble (caracteristicainmuebleporinmueble_inmueble, caracteristicainmuebleporinmueble_caracteristica)
+			SELECT inm_codigo, (SELECT caracteristicainmueble_codigo FROM SQLeros.CaracteristicaInmueble WHERE caracteristicainmueble_descripcion = 'Gas')
+			FROM SQLeros.Inmueble
+			JOIN gd_esquema.Maestra ON inm_descripcion =  INMUEBLE_DESCRIPCION
+			AND inm_ambientes = (SELECT ambientes_codigo FROM SQLeros.Ambientes WHERE ambientes_cantidad = INMUEBLE_CANT_AMBIENTES)
+			AND inm_antiguedad = INMUEBLE_ANTIGUEDAD
+			AND inm_direccion = INMUEBLE_DIRECCION
+			AND inm_disposicion = (SELECT disposicion_codigo FROM SQLeros.Disposicion WHERE disposicion_descripcion = INMUEBLE_DISPOSICION) 
+			AND inm_estado = (SELECT estadoinmueble_codigo FROM SQLeros.EstadoInmueble WHERE estadoinmueble_descripcion = INMUEBLE_ESTADO)
+			AND inm_expensas = INMUEBLE_EXPESAS
+			WHERE INMUEBLE_CARACTERISTICA_GAS = 1
+			GROUP BY inm_codigo
+		END
+GO
 
-INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('Cable')
-
-INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('Calefacción')
-
-INSERT INTO SQLeros.CaracteristicaInmueble(caracteristicainmueble_descripcion) VALUES ('Gas')
-
-BEGIN
-INSERT INTO SQLeros.Persona(pers_dni, pers_nombre, pers_apellido, pers_mail, pers_telefono, pers_fecha_nac, pers_fecha_reg)
-SELECT DISTINCT PROPIETARIO_DNI, PROPIETARIO_NOMBRE, PROPIETARIO_APELLIDO, PROPIETARIO_MAIL, PROPIETARIO_TELEFONO, PROPIETARIO_FECHA_NAC, PROPIETARIO_FECHA_REGISTRO FROM gd_esquema.Maestra
-WHERE PROPIETARIO_DNI IS NOT NULL
-
-INSERT INTO SQLeros.Persona(pers_dni, pers_nombre, pers_apellido, pers_mail, pers_telefono, pers_fecha_nac, pers_fecha_reg)
-SELECT DISTINCT AGENTE_DNI, AGENTE_NOMBRE, AGENTE_APELLIDO, AGENTE_MAIL, AGENTE_TELEFONO, AGENTE_FECHA_NAC, AGENTE_FECHA_REGISTRO
-FROM gd_esquema.Maestra
-WHERE AGENTE_DNI IS NOT NULL AND AGENTE_DNI NOT IN (
-SELECT pers_dni FROM SQLeros.Persona
-)
-
-INSERT INTO SQLeros.Persona(pers_dni, pers_nombre, pers_apellido, pers_mail, pers_telefono, pers_fecha_nac, pers_fecha_reg)
-SELECT DISTINCT INQUILINO_DNI, INQUILINO_NOMBRE, INQUILINO_APELLIDO, INQUILINO_MAIL, INQUILINO_TELEFONO, INQUILINO_FECHA_NAC, INQUILINO_FECHA_REGISTRO
-FROM gd_esquema.Maestra
-WHERE INQUILINO_DNI IS NOT NULL AND INQUILINO_DNI NOT IN (
-SELECT pers_dni FROM SQLeros.Persona
-)
-
-INSERT INTO SQLeros.Persona(pers_dni, pers_nombre, pers_apellido, pers_mail, pers_telefono, pers_fecha_nac, pers_fecha_reg)
-SELECT DISTINCT COMPRADOR_DNI, COMPRADOR_NOMBRE, COMPRADOR_APELLIDO, COMPRADOR_MAIL, COMPRADOR_TELEFONO, COMPRADOR_FECHA_NAC, COMPRADOR_FECHA_REGISTRO
-FROM gd_esquema.Maestra
-WHERE COMPRADOR_DNI IS NOT NULL AND COMPRADOR_DNI NOT IN (
-SELECT pers_dni FROM SQLeros.Persona
-)
-END
-
-INSERT INTO SQLeros.Propietario (propietario_persona)
-SELECT pers_codigo FROM SQLeros.Persona
-WHERE pers_dni IN (
-SELECT PROPIETARIO_DNI FROM gd_esquema.Maestra
-)
-
-INSERT INTO SQLeros.Inquilino (inquilino_persona)
-SELECT pers_codigo FROM SQLeros.Persona
-WHERE pers_dni IN (
-SELECT INQUILINO_DNI FROM gd_esquema.Maestra
-)
-
-INSERT INTO SQLeros.comprador (comprador_persona)
-SELECT pers_codigo FROM SQLeros.Persona
-WHERE pers_dni IN (
-SELECT COMPRADOR_DNI FROM gd_esquema.Maestra
-)
-
--- Agente se carga despues de cargar las sucursales
-
-INSERT INTO SQLeros.Inmueble (inm_codigo, inm_descripcion, inm_ambientes, inm_direccion, inm_disposicion, inm_estado, inm_expensas, inm_ubicacion, inm_superficie, inm_antiguedad, inm_tipo, inm_nombre, inm_orientacion)
-SELECT DISTINCT INMUEBLE_CODIGO, INMUEBLE_DESCRIPCION, ambientes_codigo, INMUEBLE_DIRECCION, disposicion_codigo, estadoinmueble_codigo, INMUEBLE_EXPESAS, ubicacion_codigo, INMUEBLE_SUPERFICIETOTAL, INMUEBLE_ANTIGUEDAD, tipoinmueble_codigo, INMUEBLE_NOMBRE, orientacion_codigo
-FROM gd_esquema.Maestra
-LEFT JOIN SQLeros.Ambientes ON  INMUEBLE_CANT_AMBIENTES = ambientes_cantidad
-LEFT JOIN SQLeros.Disposicion ON  INMUEBLE_DISPOSICION = disposicion_descripcion
-LEFT JOIN SQLeros.EstadoInmueble ON  INMUEBLE_ESTADO = estadoinmueble_descripcion
-JOIN SQLeros.TipoInmueble ON tipoinmueble_descripcion = INMUEBLE_TIPO_INMUEBLE
-JOIN SQLeros.Orientacion ON orientacion_descripcion = INMUEBLE_ORIENTACION
-JOIN SQLeros.Ubicacion ON ubicacion_codigo = (
-	SELECT TOP 1 ubicacion_codigo	--Revisar el TOP 1
-	FROM SQLeros.Ubicacion A
-	JOIN SQLeros.Barrio ON barrio_codigo = A.ubicacion_barrio
-	JOIN SQLeros.Localidad ON localidad_codigo = A.ubicacion_localidad
-	JOIN SQLeros.Provincia ON provincia_codigo = A.ubicacion_provincia
-	WHERE INMUEBLE_BARRIO = barrio_descripcion
-	AND INMUEBLE_LOCALIDAD = localidad_descripcion
-	AND INMUEBLE_PROVINCIA = provincia_descripcion
-	)
-WHERE INMUEBLE_CODIGO IS NOT NULL
-GROUP BY INMUEBLE_CODIGO, INMUEBLE_DESCRIPCION, ambientes_codigo, INMUEBLE_DIRECCION, disposicion_codigo, estadoinmueble_codigo, INMUEBLE_EXPESAS, ubicacion_codigo, INMUEBLE_SUPERFICIETOTAL, INMUEBLE_ANTIGUEDAD, tipoinmueble_codigo, INMUEBLE_NOMBRE, orientacion_codigo
-
-
-INSERT INTO SQLeros.CaracteristicaInmueblePorInmueble (caracteristicainmuebleporinmueble_inmueble, caracteristicainmuebleporinmueble_caracteristica)
-SELECT inm_codigo, (SELECT caracteristicainmueble_codigo FROM SQLeros.CaracteristicaInmueble WHERE caracteristicainmueble_descripcion = 'Wifi')
-FROM SQLeros.Inmueble
-JOIN gd_esquema.Maestra ON inm_descripcion =  INMUEBLE_DESCRIPCION
-AND inm_ambientes = (SELECT ambientes_codigo FROM SQLeros.Ambientes WHERE ambientes_cantidad = INMUEBLE_CANT_AMBIENTES)
-AND inm_antiguedad = INMUEBLE_ANTIGUEDAD
-AND inm_direccion = INMUEBLE_DIRECCION
-AND inm_disposicion = (SELECT disposicion_codigo FROM SQLeros.Disposicion WHERE disposicion_descripcion = INMUEBLE_DISPOSICION) 
-AND inm_estado = (SELECT estadoinmueble_codigo FROM SQLeros.EstadoInmueble WHERE estadoinmueble_descripcion = INMUEBLE_ESTADO)
-AND inm_expensas = INMUEBLE_EXPESAS
-WHERE INMUEBLE_CARACTERISTICA_WIFI = 1
-GROUP BY inm_codigo
-
-INSERT INTO SQLeros.CaracteristicaInmueblePorInmueble (caracteristicainmuebleporinmueble_inmueble, caracteristicainmuebleporinmueble_caracteristica)
-SELECT inm_codigo, (SELECT caracteristicainmueble_codigo FROM SQLeros.CaracteristicaInmueble WHERE caracteristicainmueble_descripcion = 'Cable')
-FROM SQLeros.Inmueble
-JOIN gd_esquema.Maestra ON inm_descripcion =  INMUEBLE_DESCRIPCION
-AND inm_ambientes = (SELECT ambientes_codigo FROM SQLeros.Ambientes WHERE ambientes_cantidad = INMUEBLE_CANT_AMBIENTES)
-AND inm_antiguedad = INMUEBLE_ANTIGUEDAD
-AND inm_direccion = INMUEBLE_DIRECCION
-AND inm_disposicion = (SELECT disposicion_codigo FROM SQLeros.Disposicion WHERE disposicion_descripcion = INMUEBLE_DISPOSICION) 
-AND inm_estado = (SELECT estadoinmueble_codigo FROM SQLeros.EstadoInmueble WHERE estadoinmueble_descripcion = INMUEBLE_ESTADO)
-AND inm_expensas = INMUEBLE_EXPESAS
-WHERE INMUEBLE_CARACTERISTICA_CABLE = 1
-GROUP BY inm_codigo
-
-INSERT INTO SQLeros.CaracteristicaInmueblePorInmueble (caracteristicainmuebleporinmueble_inmueble, caracteristicainmuebleporinmueble_caracteristica)
-SELECT inm_codigo, (SELECT caracteristicainmueble_codigo FROM SQLeros.CaracteristicaInmueble WHERE caracteristicainmueble_descripcion = 'Calefacción')
-FROM SQLeros.Inmueble
-JOIN gd_esquema.Maestra ON inm_descripcion =  INMUEBLE_DESCRIPCION
-AND inm_ambientes = (SELECT ambientes_codigo FROM SQLeros.Ambientes WHERE ambientes_cantidad = INMUEBLE_CANT_AMBIENTES)
-AND inm_antiguedad = INMUEBLE_ANTIGUEDAD
-AND inm_direccion = INMUEBLE_DIRECCION
-AND inm_disposicion = (SELECT disposicion_codigo FROM SQLeros.Disposicion WHERE disposicion_descripcion = INMUEBLE_DISPOSICION) 
-AND inm_estado = (SELECT estadoinmueble_codigo FROM SQLeros.EstadoInmueble WHERE estadoinmueble_descripcion = INMUEBLE_ESTADO)
-AND inm_expensas = INMUEBLE_EXPESAS
-WHERE INMUEBLE_CARACTERISTICA_CALEFACCION = 1
-GROUP BY inm_codigo
-
-INSERT INTO SQLeros.CaracteristicaInmueblePorInmueble (caracteristicainmuebleporinmueble_inmueble, caracteristicainmuebleporinmueble_caracteristica)
-SELECT inm_codigo, (SELECT caracteristicainmueble_codigo FROM SQLeros.CaracteristicaInmueble WHERE caracteristicainmueble_descripcion = 'Gas')
-FROM SQLeros.Inmueble
-JOIN gd_esquema.Maestra ON inm_descripcion =  INMUEBLE_DESCRIPCION
-AND inm_ambientes = (SELECT ambientes_codigo FROM SQLeros.Ambientes WHERE ambientes_cantidad = INMUEBLE_CANT_AMBIENTES)
-AND inm_antiguedad = INMUEBLE_ANTIGUEDAD
-AND inm_direccion = INMUEBLE_DIRECCION
-AND inm_disposicion = (SELECT disposicion_codigo FROM SQLeros.Disposicion WHERE disposicion_descripcion = INMUEBLE_DISPOSICION) 
-AND inm_estado = (SELECT estadoinmueble_codigo FROM SQLeros.EstadoInmueble WHERE estadoinmueble_descripcion = INMUEBLE_ESTADO)
-AND inm_expensas = INMUEBLE_EXPESAS
-WHERE INMUEBLE_CARACTERISTICA_GAS = 1
-GROUP BY inm_codigo
-
-INSERT INTO SQLeros.Sucursal (sucur_nombre, sucur_direccion, sucur_sucur_telefono, sucur_ubicacion)
-SELECT DISTINCT SUCURSAL_NOMBRE, SUCURSAL_DIRECCION, SUCURSAL_TELEFONO, ubicacion_codigo FROM gd_esquema.Maestra
-LEFT JOIN SQLeros.Ubicacion ON ubicacion_codigo = (
-	SELECT ubicacion_codigo
-	FROM SQLeros.Ubicacion A
-	JOIN SQLeros.Localidad ON localidad_codigo = A.ubicacion_localidad
-	JOIN SQLeros.Provincia ON provincia_codigo = A.ubicacion_provincia
-	WHERE SUCURSAL_LOCALIDAD = localidad_descripcion
-	AND SUCURSAL_PROVINCIA = provincia_descripcion
-	)
-GROUP BY SUCURSAL_NOMBRE, SUCURSAL_DIRECCION, SUCURSAL_TELEFONO, ubicacion_codigo
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigraRSucursal')
+	DROP PROCEDURE SQLeros.MigraRSucursal
+GO
+CREATE PROCEDURE SQLeros.MigraRSucursal
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Sucursal (sucur_nombre, sucur_direccion, sucur_sucur_telefono, sucur_ubicacion)
+			SELECT DISTINCT SUCURSAL_NOMBRE, SUCURSAL_DIRECCION, SUCURSAL_TELEFONO, ubicacion_codigo FROM gd_esquema.Maestra
+			LEFT JOIN SQLeros.Ubicacion ON ubicacion_codigo = (
+				SELECT ubicacion_codigo
+				FROM SQLeros.Ubicacion A
+				JOIN SQLeros.Localidad ON localidad_codigo = A.ubicacion_localidad
+				JOIN SQLeros.Provincia ON provincia_codigo = A.ubicacion_provincia
+				WHERE SUCURSAL_LOCALIDAD = localidad_descripcion
+				AND SUCURSAL_PROVINCIA = provincia_descripcion
+				)
+			GROUP BY SUCURSAL_NOMBRE, SUCURSAL_DIRECCION, SUCURSAL_TELEFONO, ubicacion_codigo
+		END
+GO
 
 INSERT INTO SQLeros.Agente (agen_persona, agen_sucursal)
 SELECT distinct pers_codigo, sucur_codigo FROM SQLeros.Persona

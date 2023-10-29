@@ -108,7 +108,8 @@ CREATE TABLE SQLeros.Persona(
 END
 
 CREATE TABLE SQLeros.Inmueble(
-	inm_codigo INT PRIMARY KEY,
+	inm_codigo INT IDENTITY PRIMARY KEY,
+	inm_codigo_maestra INT,
 	inm_nombre VARCHAR(50),
 	inm_descripcion VARCHAR(50),
 	inm_direccion VARCHAR(100),
@@ -337,10 +338,10 @@ GO
 
 /*MIGRACIÓN*/
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarInmueble')
-	DROP PROCEDURE SQLeros.MigrarInmueble
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarEstadoInmueble')
+	DROP PROCEDURE SQLeros.MigrarEstadoInmueble
 GO
-CREATE PROCEDURE SQLeros.MigrarInmueble
+CREATE PROCEDURE SQLeros.MigrarEstadoInmueble
 	AS
 		BEGIN
 			INSERT INTO SQLeros.EstadoInmueble(estadoinmueble_descripcion)
@@ -402,10 +403,10 @@ CREATE PROCEDURE SQLeros.MigrarBarrio
 		END
 GO
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarBarrio')
-	DROP PROCEDURE SQLeros.MigrarBarrio
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarLocalidad')
+	DROP PROCEDURE SQLeros.MigrarLocalidad
 GO
-CREATE PROCEDURE SQLeros.MigrarBarrio
+CREATE PROCEDURE SQLeros.MigrarLocalidad
 	AS
 		BEGIN
 			INSERT INTO SQLeros.Localidad(localidad_descripcion)
@@ -581,7 +582,7 @@ GO
 CREATE PROCEDURE SQLeros.MigrarInmueble
 	AS
 		BEGIN
-			INSERT INTO SQLeros.Inmueble (inm_codigo, inm_descripcion, inm_ambientes, inm_direccion, inm_disposicion, inm_estado, inm_expensas, inm_ubicacion, inm_superficie, inm_antiguedad, inm_tipo, inm_nombre, inm_orientacion)
+			INSERT INTO SQLeros.Inmueble (inm_codigo_maestra, inm_descripcion, inm_ambientes, inm_direccion, inm_disposicion, inm_estado, inm_expensas, inm_ubicacion, inm_superficie, inm_antiguedad, inm_tipo, inm_nombre, inm_orientacion)
 			SELECT DISTINCT INMUEBLE_CODIGO, INMUEBLE_DESCRIPCION, ambientes_codigo, INMUEBLE_DIRECCION, disposicion_codigo, estadoinmueble_codigo, INMUEBLE_EXPESAS, ubicacion_codigo, INMUEBLE_SUPERFICIETOTAL, INMUEBLE_ANTIGUEDAD, tipoinmueble_codigo, INMUEBLE_NOMBRE, orientacion_codigo
 			FROM gd_esquema.Maestra
 			LEFT JOIN SQLeros.Ambientes ON  INMUEBLE_CANT_AMBIENTES = ambientes_cantidad
@@ -603,6 +604,18 @@ CREATE PROCEDURE SQLeros.MigrarInmueble
 			GROUP BY INMUEBLE_CODIGO, INMUEBLE_DESCRIPCION, ambientes_codigo, INMUEBLE_DIRECCION, disposicion_codigo, estadoinmueble_codigo, INMUEBLE_EXPESAS, ubicacion_codigo, INMUEBLE_SUPERFICIETOTAL, INMUEBLE_ANTIGUEDAD, tipoinmueble_codigo, INMUEBLE_NOMBRE, orientacion_codigo
 		END
 GO
+
+
+
+
+
+
+
+
+
+
+
+
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarCaracteristicaInmueblePorInmueble')
 	DROP PROCEDURE SQLeros.MigrarCaracteristicaInmueblePorInmueble
@@ -664,10 +677,10 @@ CREATE PROCEDURE SQLeros.MigrarCaracteristicaInmueblePorInmueble
 		END
 GO
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigraRSucursal')
-	DROP PROCEDURE SQLeros.MigraRSucursal
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarSucursal')
+	DROP PROCEDURE SQLeros.MigrarSucursal
 GO
-CREATE PROCEDURE SQLeros.MigraRSucursal
+CREATE PROCEDURE SQLeros.MigrarSucursal
 	AS
 		BEGIN
 			INSERT INTO SQLeros.Sucursal (sucur_nombre, sucur_direccion, sucur_sucur_telefono, sucur_ubicacion)
@@ -684,120 +697,189 @@ CREATE PROCEDURE SQLeros.MigraRSucursal
 		END
 GO
 
-INSERT INTO SQLeros.Agente (agen_persona, agen_sucursal)
-SELECT distinct pers_codigo, sucur_codigo FROM SQLeros.Persona
-left join gd_esquema.Maestra on AGENTE_DNI = pers_dni
-join SQLeros.sucursal on SUCURSAL_NOMBRE = SQLeros.sucursal.sucur_nombre
-WHERE pers_dni IN (SELECT AGENTE_DNI FROM gd_esquema.Maestra)
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarAgente')
+	DROP PROCEDURE SQLeros.MigrarAgente
+GO
+CREATE PROCEDURE SQLeros.MigrarAgente
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Agente (agen_persona, agen_sucursal)
+			SELECT distinct pers_codigo, sucur_codigo FROM SQLeros.Persona
+			left join gd_esquema.Maestra on AGENTE_DNI = pers_dni
+			join SQLeros.sucursal on SUCURSAL_NOMBRE = SQLeros.sucursal.sucur_nombre
+			WHERE pers_dni IN (SELECT AGENTE_DNI FROM gd_esquema.Maestra)
+		END
+GO
 
-INSERT INTO SQLeros.EstadoAnuncio (estadoanuncio_descripcion)
-SELECT DISTINCT ANUNCIO_ESTADO FROM gd_esquema.Maestra
-WHERE ANUNCIO_ESTADO IS NOT NULL
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarEstadoAnuncio')
+	DROP PROCEDURE SQLeros.MigrarEstadoAnuncio
+GO
+CREATE PROCEDURE SQLeros.MigrarEstadoAnuncio
+	AS
+		BEGIN
+			INSERT INTO SQLeros.EstadoAnuncio (estadoanuncio_descripcion)
+			SELECT DISTINCT ANUNCIO_ESTADO FROM gd_esquema.Maestra
+			WHERE ANUNCIO_ESTADO IS NOT NULL
+		END
+GO
 
--- Los nombres vienen como "Tipo Operacion Alquiler Contrato", se podria sacar
-INSERT INTO SQLeros.TipoOperacion (tipooperacion_descripcion)
-SELECT DISTINCT ANUNCIO_TIPO_OPERACION FROM gd_esquema.Maestra
-WHERE ANUNCIO_TIPO_OPERACION IS NOT NULL
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarTipoOperacion')
+	DROP PROCEDURE SQLeros.MigrarTipoOperacion
+GO
+CREATE PROCEDURE SQLeros.MigrarTipoOperacion
+	AS
+		BEGIN
+			INSERT INTO SQLeros.TipoOperacion (tipooperacion_descripcion)
+			SELECT DISTINCT ANUNCIO_TIPO_OPERACION FROM gd_esquema.Maestra
+			WHERE ANUNCIO_TIPO_OPERACION IS NOT NULL
+		END
+GO
 
--- Vendidos y finalizados tienen periodo 0 (?)
-INSERT INTO SQLeros.TipoPeriodo (tipoperiodo_descripcion)
-SELECT DISTINCT ANUNCIO_TIPO_PERIODO FROM gd_esquema.Maestra
-WHERE ANUNCIO_TIPO_PERIODO IS NOT NULL
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarTipoPeriodo')
+	DROP PROCEDURE SQLeros.MigrarTipoPeriodo
+GO
+CREATE PROCEDURE SQLeros.MigrarTipoPeriodo
+	AS
+		BEGIN
+			INSERT INTO SQLeros.TipoPeriodo (tipoperiodo_descripcion)
+			SELECT DISTINCT ANUNCIO_TIPO_PERIODO FROM gd_esquema.Maestra
+			WHERE ANUNCIO_TIPO_PERIODO IS NOT NULL
+		END
+GO
 
-INSERT INTO SQLeros.Anuncio (anu_codigo, anu_agente, anu_inmueble, anu_sucursal, anu_fecha_pub, anu_precio, anu_costo, anu_fecha_fin, anu_tipo_op, anu_moneda, anu_estado, anu_tipo_periodo)
-SELECT ANUNCIO_CODIGO, agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
-FROM gd_esquema.Maestra
-JOIN SQLeros.Persona ON pers_dni = AGENTE_DNI
-JOIN SQLeros.Agente ON agen_persona = pers_codigo
-JOIN SQLeros.Inmueble ON inm_codigo = INMUEBLE_CODIGO
-JOIN SQLeros.Sucursal ON sucur_nombre = SUCURSAL_NOMBRE
-JOIN SQLeros.TipoOperacion ON tipooperacion_descripcion = ANUNCIO_TIPO_OPERACION
-JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
-JOIN SQLeros.TipoPeriodo ON tipoperiodo_descripcion = ANUNCIO_TIPO_PERIODO
-JOIN SQLeros.Moneda ON moneda_nombre = ANUNCIO_MONEDA
-GROUP BY ANUNCIO_CODIGO, agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarAnuncio')
+	DROP PROCEDURE SQLeros.MigrarAnuncio
+GO
+CREATE PROCEDURE SQLeros.MigrarAnuncio
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Anuncio (anu_codigo, anu_agente, anu_inmueble, anu_sucursal, anu_fecha_pub, anu_precio, anu_costo, anu_fecha_fin, anu_tipo_op, anu_moneda, anu_estado, anu_tipo_periodo)
+			SELECT ANUNCIO_CODIGO, agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
+			FROM gd_esquema.Maestra
+			JOIN SQLeros.Persona ON pers_dni = AGENTE_DNI
+			JOIN SQLeros.Agente ON agen_persona = pers_codigo
+			JOIN SQLeros.Inmueble ON inm_codigo = INMUEBLE_CODIGO
+			JOIN SQLeros.Sucursal ON sucur_nombre = SUCURSAL_NOMBRE
+			JOIN SQLeros.TipoOperacion ON tipooperacion_descripcion = ANUNCIO_TIPO_OPERACION
+			JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
+			JOIN SQLeros.TipoPeriodo ON tipoperiodo_descripcion = ANUNCIO_TIPO_PERIODO
+			JOIN SQLeros.Moneda ON moneda_nombre = ANUNCIO_MONEDA
+			GROUP BY ANUNCIO_CODIGO, agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
+		END
+GO
 
-INSERT INTO SQLeros.Alquiler (alq_codigo_maestra, alq_anuncio, alq_cant_periodos, alq_comision, alq_depositio, alq_estado, alq_fecha_fin, alq_fecha_inicio, alq_gastos, alq_inquilino, alq_precio)
-SELECT DISTINCT ALQUILER_CODIGO, ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, estadoanuncio_codigo, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, inquilino_codigo, ANUNCIO_PRECIO_PUBLICADO
-FROM gd_esquema.Maestra
-JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
-JOIN SQLeros.Persona ON pers_dni = INQUILINO_DNI
-JOIN SQLeros.Inquilino ON inquilino_persona = pers_codigo
-GROUP BY ALQUILER_CODIGO, ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, estadoanuncio_codigo, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, inquilino_codigo, ANUNCIO_PRECIO_PUBLICADO
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarAlquiler')
+	DROP PROCEDURE SQLeros.MigrarAlquiler
+GO
+CREATE PROCEDURE SQLeros.MigrarAlquiler
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Alquiler (alq_codigo_maestra, alq_anuncio, alq_cant_periodos, alq_comision, alq_depositio, alq_estado, alq_fecha_fin, alq_fecha_inicio, alq_gastos, alq_inquilino, alq_precio)
+			SELECT DISTINCT ALQUILER_CODIGO, ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, estadoanuncio_codigo, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, inquilino_codigo, ANUNCIO_PRECIO_PUBLICADO
+			FROM gd_esquema.Maestra
+			JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
+			JOIN SQLeros.Persona ON pers_dni = INQUILINO_DNI
+			JOIN SQLeros.Inquilino ON inquilino_persona = pers_codigo
+			GROUP BY ALQUILER_CODIGO, ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, estadoanuncio_codigo, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, inquilino_codigo, ANUNCIO_PRECIO_PUBLICADO
+		END
+GO
 
-/*
-SELECT * FROM SQLeros.Inquilino
-JOIN SQLeros.Persona ON pers_codigo = inquilino_persona
-WHERE inquilino_codigo = '7866' OR inquilino_codigo = '7867'
-*/
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarDetalleAlquiler')
+	DROP PROCEDURE SQLeros.MigrarDetalleAlquiler
+GO
+CREATE PROCEDURE SQLeros.MigrarDetalleAlquiler
+	AS
+		BEGIN
+			INSERT INTO SQLeros.DetalleAlquiler (detallealq_alquiler, detallealq_nro_periodo_final, detallealq_nro_periodo_inicial, detallealq_precio)
+			SELECT alquiler_codigo, DETALLE_ALQ_NRO_PERIODO_FIN, DETALLE_ALQ_NRO_PERIODO_INI, DETALLE_ALQ_PRECIO FROM gd_esquema.Maestra
+			JOIN SQLeros.Alquiler ON alq_codigo_maestra = ALQUILER_CODIGO
+		END
+GO
 
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarVenta')
+	DROP PROCEDURE SQLeros.MigrarVenta
+GO
+CREATE PROCEDURE SQLeros.MigrarVenta
+	AS
+		BEGIN
+			INSERT INTO SQLeros.Venta (venta_codigo, venta_anuncio, venta_comision, venta_comprador, venta_fecha, venta_moneda, venta_precio)
+			SELECT DISTINCT VENTA_CODIGO, anuncio_codigo, VENTA_COMISION, comprador_codigo, VENTA_FECHA, moneda_codigo, VENTA_PRECIO_VENTA
+			FROM gd_esquema.Maestra
+			JOIN SQLeros.Anuncio ON anuncio_codigo = ANUNCIO_CODIGO
+			JOIN SQLeros.Persona ON pers_dni = COMPRADOR_DNI
+			JOIN SQLeros.Comprador ON comprador_persona = pers_codigo
+			JOIN SQLeros.Moneda ON moneda_nombre = VENTA_MONEDA
+		END
+GO
 
-INSERT INTO SQLeros.DetalleAlquiler (detallealq_alquiler, detallealq_nro_periodo_final, detallealq_nro_periodo_inicial, detallealq_precio)
-SELECT alquiler_codigo, DETALLE_ALQ_NRO_PERIODO_FIN, DETALLE_ALQ_NRO_PERIODO_INI, DETALLE_ALQ_PRECIO FROM gd_esquema.Maestra
-JOIN SQLeros.Alquiler ON alq_codigo_maestra = ALQUILER_CODIGO
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarMedioDePago')
+	DROP PROCEDURE SQLeros.MigrarMedioDePago
+GO
+CREATE PROCEDURE SQLeros.MigrarMedioDePago
+	AS
+		BEGIN
+			INSERT INTO SQLeros.MedioDePago (medio_nombre)
+			SELECT DISTINCT PAGO_ALQUILER_MEDIO_PAGO FROM gd_esquema.Maestra
+			WHERE PAGO_ALQUILER_MEDIO_PAGO IS NOT NULL
 
-INSERT INTO SQLeros.Venta (venta_codigo, venta_anuncio, venta_comision, venta_comprador, venta_fecha, venta_moneda, venta_precio)
-SELECT DISTINCT VENTA_CODIGO, anuncio_codigo, VENTA_COMISION, comprador_codigo, VENTA_FECHA, moneda_codigo, VENTA_PRECIO_VENTA
-FROM gd_esquema.Maestra
-JOIN SQLeros.Anuncio ON anuncio_codigo = ANUNCIO_CODIGO
-JOIN SQLeros.Persona ON pers_dni = COMPRADOR_DNI
-JOIN SQLeros.Comprador ON comprador_persona = pers_codigo
-JOIN SQLeros.Moneda ON moneda_nombre = VENTA_MONEDA
+			INSERT INTO SQLeros.MedioDePago (medio_nombre)
+			SELECT DISTINCT PAGO_VENTA_MEDIO_PAGO FROM gd_esquema.Maestra
+			WHERE PAGO_VENTA_MEDIO_PAGO IS NOT NULL
+			AND PAGO_VENTA_MEDIO_PAGO NOT IN (SELECT medio_nombre FROM SQLeros.MedioDePago)
+		END
+GO
 
-INSERT INTO SQLeros.MedioDePago (medio_nombre)
-SELECT DISTINCT PAGO_ALQUILER_MEDIO_PAGO FROM gd_esquema.Maestra
-WHERE PAGO_ALQUILER_MEDIO_PAGO IS NOT NULL
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarPagoAlquiler')
+	DROP PROCEDURE SQLeros.MigrarPagoAlquiler
+GO
+CREATE PROCEDURE SQLeros.MigrarPagoAlquiler
+	AS
+		BEGIN
+			INSERT INTO SQLeros.PagoAlquiler (pagoalq_codigo_maestra, pagoalq_alquiler, pagoalq_descripcion_periodo, pagoalq_fecha, pagoalq_fecha_fin, pagoalq_fecha_inicio, pagoalq_importe, pagoalq_medio, pagoalq_nro_periodo, pagoalq_vencimiento)
+			SELECT DISTINCT PAGO_ALQUILER_CODIGO, alq_codigo, PAGO_ALQUILER_DESC, PAGO_ALQUILER_FECHA, PAGO_ALQUILER_FEC_FIN, PAGO_ALQUILER_FEC_INI, PAGO_ALQUILER_IMPORTE, medio_codigo, PAGO_ALQUILER_NRO_PERIODO, PAGO_ALQUILER_FECHA_VENCIMIENTO
+			FROM gd_esquema.Maestra
+			JOIN SQLeros.MedioDePago ON medio_nombre = PAGO_ALQUILER_MEDIO_PAGO
+			JOIN SQLeros.Alquiler ON alq_codigo_maestra = ALQUILER_CODIGO 
+		END
+GO
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarPagoVenta')
+	DROP PROCEDURE SQLeros.MigrarPagoVenta
+GO
+CREATE PROCEDURE SQLeros.MigrarPagoVenta
+	AS
+		BEGIN
+			INSERT INTO SQLeros.PagoVenta(pagoventa_venta, pagoventa_importe, pagoventa_moneda, pagoventa_cotizacion, pagoventa_medio)
+			SELECT DISTINCT VENTA_CODIGO, PAGO_VENTA_IMPORTE, moneda_codigo, PAGO_VENTA_COTIZACION, medio_codigo
+			FROM gd_esquema.Maestra
+			JOIN SQLeros.MedioDePago ON medio_nombre = PAGO_VENTA_MEDIO_PAGO
+			JOIN SQLeros.Moneda ON moneda_nombre = PAGO_VENTA_MONEDA
+		END
+GO
 
-INSERT INTO SQLeros.MedioDePago (medio_nombre)
-SELECT DISTINCT PAGO_VENTA_MEDIO_PAGO FROM gd_esquema.Maestra
-WHERE PAGO_VENTA_MEDIO_PAGO IS NOT NULL
-AND PAGO_VENTA_MEDIO_PAGO NOT IN (SELECT medio_nombre FROM SQLeros.MedioDePago)
-
-
-INSERT INTO SQLeros.PagoAlquiler (pagoalq_codigo_maestra, pagoalq_alquiler, pagoalq_descripcion_periodo, pagoalq_fecha, pagoalq_fecha_fin, pagoalq_fecha_inicio, pagoalq_importe, pagoalq_medio, pagoalq_nro_periodo, pagoalq_vencimiento)
-SELECT DISTINCT PAGO_ALQUILER_CODIGO, alq_codigo, PAGO_ALQUILER_DESC, PAGO_ALQUILER_FECHA, PAGO_ALQUILER_FEC_FIN, PAGO_ALQUILER_FEC_INI, PAGO_ALQUILER_IMPORTE, medio_codigo, PAGO_ALQUILER_NRO_PERIODO, PAGO_ALQUILER_FECHA_VENCIMIENTO
-FROM gd_esquema.Maestra
-JOIN SQLeros.MedioDePago ON medio_nombre = PAGO_ALQUILER_MEDIO_PAGO
-JOIN SQLeros.Alquiler ON alq_codigo_maestra = ALQUILER_CODIGO 
-
-INSERT INTO SQLeros.PagoVenta(pagoventa_venta, pagoventa_importe, pagoventa_moneda, pagoventa_cotizacion, pagoventa_medio)
-SELECT DISTINCT VENTA_CODIGO, PAGO_VENTA_IMPORTE, moneda_codigo, PAGO_VENTA_COTIZACION, medio_codigo
-FROM gd_esquema.Maestra
-JOIN SQLeros.MedioDePago ON medio_nombre = PAGO_VENTA_MEDIO_PAGO
-JOIN SQLeros.Moneda ON moneda_nombre = PAGO_VENTA_MONEDA
-
-
-
-/*
-SELECT DISTINCT INMUEBLE_CODIGO FROM gd_esquema.Maestra
-SELECT inm_descripcion, caracteristicainmueble_descripcion FROM SQLeros.CaracteristicaInmueblePorInmueble
-JOIN SQLeros.Inmueble ON inm_codigo = caracteristicainmuebleporinmueble_inmueble
-JOIN SQLeros.CaracteristicaInmueble ON caracteristicainmueble_codigo = caracteristicainmuebleporinmueble_caracteristica
-
-SELECT * FROM gd_esquema.Maestra WHERE INMUEBLE_ANTIGUEDAD IS NOT NULL
-*/
-
-
-
-
-/*
-SELECT * FROM SQLeros.Ubicacion WHERE ubicacion_barrio IS NULL
-select * from SQLeros.Sucursal
-
-SELECT * FROM gd_esquema.Maestra WHERE SUCURSAL_CODIGO IS NOT NULL
-
-SELECT * FROM SQLeros.Barrio 
-
-SELECT * FROM SQLeros.Ubicacion
-JOIN SQLeros.Provincia ON provincia_codigo = ubicacion_provincia
-JOIN SQLeros.Localidad ON localidad_codigo = ubicacion_localidad
-WHERE ubicacion_barrio IS NULL
-
-SELECT * FROM SQLeros.Sucursal
-
-Select * from gd_esquema.Maestra where AGENTE_NOMBRE is not NULL
-SELECT distinct pers_dni from SQLeros.Persona
-SELECT distinct inm_nombre from SQLeros.Inmueble
-
-SELECT * FROM SQLeros.Alquiler
-*/
+EXEC SQLeros.MigrarEstadoInmueble
+EXEC SQLeros.MigrarTipoInmueble
+EXEC SQLeros.MigrarAmbientes
+EXEC SQLeros.MigrarProvincia
+EXEC SQLeros.MigrarBarrio
+EXEC SQLeros.MigrarLocalidad
+EXEC SQLeros.MigrarOrientacion
+EXEC SQLeros.MigrarDisposicion
+EXEC SQLeros.MigrarUbicacion
+EXEC SQLeros.MigrarCaracteristicaInmueble
+EXEC SQLeros.MigrarPersona
+EXEC SQLeros.MigrarPropietario
+EXEC SQLeros.MigrarInquilino
+EXEC SQLeros.MigrarComprador
+EXEC SQLeros.MigrarInmueble
+EXEC SQLeros.MigrarCaracteristicaInmueblePorInmueble
+EXEC SQLeros.MigrarSucursal
+EXEC SQLeros.MigrarAgente
+EXEC SQLeros.MigrarEstadoAnuncio
+EXEC SQLeros.MigrarTipoOperacion
+EXEC SQLeros.MigrarTipoPeriodo
+EXEC SQLeros.MigrarAnuncio
+EXEC SQLeros.MigrarAlquiler
+EXEC SQLeros.MigrarDetalleAlquiler
+EXEC SQLeros.MigrarVenta
+EXEC SQLeros.MigrarMedioDePago
+EXEC SQLeros.MigrarPagoAlquiler

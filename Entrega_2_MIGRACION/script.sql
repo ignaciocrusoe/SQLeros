@@ -628,18 +628,6 @@ CREATE PROCEDURE SQLeros.MigrarInmueble
 		END
 GO
 
-
-
-
-
-
-
-
-
-
-
-
-
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarCaracteristicaInmueblePorInmueble')
 	DROP PROCEDURE SQLeros.MigrarCaracteristicaInmueblePorInmueble
 GO

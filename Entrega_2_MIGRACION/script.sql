@@ -1,6 +1,7 @@
+/*
 CREATE SCHEMA SQLeros
 GO
-
+*/
 USE GD2C2023
 
 IF OBJECT_ID('SQLeros.Persona', 'U') IS NOT NULL
@@ -90,6 +91,9 @@ DROP TABLE SQLeros.Moneda;
 IF OBJECT_ID('SQLeros.TipoPeriodo', 'U') IS NOT NULL
 DROP TABLE SQLeros.TipoPeriodo;
 
+IF OBJECT_ID('SQLeros.EstadoAlquiler', 'U') IS NOT NULL
+DROP TABLE SQLeros.EstadoAlquiler;
+
 /*CREACIÓN DE LAS TABLAS*/
 
 -- Creo la tabla Persona porque hay que almacenar los mismos datos para un propietario o inquilino
@@ -114,7 +118,7 @@ CREATE TABLE SQLeros.Inmueble(
 	inm_direccion VARCHAR(100),
 	inm_superficie VARCHAR(50),
 	inm_antiguedad VARCHAR(50),
-	inm_expensas VARCHAR(50),
+	inm_expensas DECIMAL(20,8),
 	inm_ubicacion INT,
 	inm_tipo INT,
 	inm_ambientes INT,
@@ -335,7 +339,25 @@ CREATE TABLE SQLeros.TipoPeriodo(
 )
 GO
 
+CREATE TABLE SQLeros.EstadoAlquiler(
+	estadoalquiler_codigo INT IDENTITY PRIMARY KEY,
+	estadoalquiler_descripcion VARCHAR(25),
+)
+GO
+
 /*MIGRACIÓN*/
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarEstadoAlquiler')
+	DROP PROCEDURE SQLeros.MigrarEstadoAlquiler
+GO
+CREATE PROCEDURE SQLeros.MigrarEstadoAlquiler
+	AS
+		BEGIN
+			INSERT INTO SQLeros.EstadoAlquiler(estadoalquiler_descripcion)
+			SELECT DISTINCT ALQUILER_ESTADO FROM gd_esquema.Maestra
+			GROUP BY ALQUILER_ESTADO
+		END
+GO
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarEstadoInmueble')
 	DROP PROCEDURE SQLeros.MigrarEstadoInmueble
@@ -604,6 +626,18 @@ CREATE PROCEDURE SQLeros.MigrarInmueble
 		END
 GO
 
+
+
+
+
+
+
+
+
+
+
+
+
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarCaracteristicaInmueblePorInmueble')
 	DROP PROCEDURE SQLeros.MigrarCaracteristicaInmueblePorInmueble
 GO
@@ -761,13 +795,14 @@ GO
 CREATE PROCEDURE SQLeros.MigrarAlquiler
 	AS
 		BEGIN
-			INSERT INTO SQLeros.Alquiler (alq_codigo_maestra, alq_anuncio, alq_cant_periodos, alq_comision, alq_depositio, alq_estado, alq_fecha_fin, alq_fecha_inicio, alq_gastos, alq_inquilino, alq_precio)
-			SELECT DISTINCT ALQUILER_CODIGO, ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, estadoanuncio_codigo, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, inquilino_codigo, ANUNCIO_PRECIO_PUBLICADO
+			INSERT INTO SQLeros.Alquiler (alq_codigo_maestra, alq_anuncio, alq_cant_periodos, alq_comision, alq_depositio, alq_fecha_fin, alq_fecha_inicio, alq_gastos, alq_inquilino, alq_precio, alq_estado)
+			SELECT DISTINCT ALQUILER_CODIGO, ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, inquilino_codigo, ANUNCIO_PRECIO_PUBLICADO, estadoalquiler_codigo
 			FROM gd_esquema.Maestra
 			JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
 			JOIN SQLeros.Persona ON pers_dni = INQUILINO_DNI
 			JOIN SQLeros.Inquilino ON inquilino_persona = pers_codigo
-			GROUP BY ALQUILER_CODIGO, ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, estadoanuncio_codigo, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, inquilino_codigo, ANUNCIO_PRECIO_PUBLICADO
+			JOIN SQLeros.EstadoAlquiler ON estadoalquiler_descripcion = ALQUILER_ESTADO
+			GROUP BY ALQUILER_CODIGO, ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, inquilino_codigo, ANUNCIO_PRECIO_PUBLICADO, estadoalquiler_codigo
 		END
 GO
 

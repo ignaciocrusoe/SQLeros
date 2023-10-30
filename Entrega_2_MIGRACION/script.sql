@@ -142,7 +142,8 @@ CREATE TABLE SQLeros. CaracteristicaInmueblePorInmueble(
 GO
 
 CREATE TABLE SQLeros.Anuncio(
-	anu_codigo INT PRIMARY KEY,
+	anu_codigo INT IDENTITY PRIMARY KEY,
+	anu_codigo_maestra INT,
 	anu_agente INT,
 	anu_inmueble INT,
 	anu_sucursal INT,
@@ -238,7 +239,8 @@ CREATE TABLE SQLeros.MedioDePago(
 GO
 
 CREATE TABLE SQLeros.Venta(
-	 venta_codigo INT PRIMARY KEY,
+	 venta_codigo INT IDENTITY PRIMARY KEY,
+	 venta_codigo_maestra INT,
 	 venta_comprador INT,
 	 venta_anuncio INT,
 	 venta_fecha SMALLDATETIME,
@@ -774,12 +776,12 @@ GO
 CREATE PROCEDURE SQLeros.MigrarAnuncio
 	AS
 		BEGIN
-			INSERT INTO SQLeros.Anuncio (anu_codigo, anu_agente, anu_inmueble, anu_sucursal, anu_fecha_pub, anu_precio, anu_costo, anu_fecha_fin, anu_tipo_op, anu_moneda, anu_estado, anu_tipo_periodo)
+			INSERT INTO SQLeros.Anuncio (anu_codigo_maestra, anu_agente, anu_inmueble, anu_sucursal, anu_fecha_pub, anu_precio, anu_costo, anu_fecha_fin, anu_tipo_op, anu_moneda, anu_estado, anu_tipo_periodo)
 			SELECT ANUNCIO_CODIGO, agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
 			FROM gd_esquema.Maestra
 			JOIN SQLeros.Persona ON pers_dni = AGENTE_DNI
 			JOIN SQLeros.Agente ON agen_persona = pers_codigo
-			JOIN SQLeros.Inmueble ON inm_codigo = INMUEBLE_CODIGO
+			JOIN SQLeros.Inmueble ON inm_codigo_maestra = INMUEBLE_CODIGO
 			JOIN SQLeros.Sucursal ON sucur_nombre = SUCURSAL_NOMBRE
 			JOIN SQLeros.TipoOperacion ON tipooperacion_descripcion = ANUNCIO_TIPO_OPERACION
 			JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
@@ -824,7 +826,7 @@ GO
 CREATE PROCEDURE SQLeros.MigrarVenta
 	AS
 		BEGIN
-			INSERT INTO SQLeros.Venta (venta_codigo, venta_anuncio, venta_comision, venta_comprador, venta_fecha, venta_moneda, venta_precio)
+			INSERT INTO SQLeros.Venta (venta_codigo_maestra, venta_anuncio, venta_comision, venta_comprador, venta_fecha, venta_moneda, venta_precio)
 			SELECT DISTINCT VENTA_CODIGO, anuncio_codigo, VENTA_COMISION, comprador_codigo, VENTA_FECHA, moneda_codigo, VENTA_PRECIO_VENTA
 			FROM gd_esquema.Maestra
 			JOIN SQLeros.Anuncio ON anuncio_codigo = ANUNCIO_CODIGO
@@ -889,6 +891,7 @@ BEGIN TRANSACTION
 		EXEC SQLeros.MigrarOrientacion
 		EXEC SQLeros.MigrarDisposicion
 		EXEC SQLeros.MigrarUbicacion
+		EXEC SQLeros.MigrarMoneda
 		EXEC SQLeros.MigrarCaracteristicaInmueble
 		EXEC SQLeros.MigrarPersona
 		EXEC SQLeros.MigrarPropietario
@@ -902,6 +905,7 @@ BEGIN TRANSACTION
 		EXEC SQLeros.MigrarTipoOperacion
 		EXEC SQLeros.MigrarTipoPeriodo
 		EXEC SQLeros.MigrarAnuncio
+		EXEC SQLeros.MigrarEstadoAlquiler
 		EXEC SQLeros.MigrarAlquiler
 		EXEC SQLeros.MigrarDetalleAlquiler
 		EXEC SQLeros.MigrarVenta

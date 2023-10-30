@@ -878,30 +878,37 @@ CREATE PROCEDURE SQLeros.MigrarPagoVenta
 		END
 GO
 
-EXEC SQLeros.MigrarEstadoInmueble
-EXEC SQLeros.MigrarTipoInmueble
-EXEC SQLeros.MigrarAmbientes
-EXEC SQLeros.MigrarProvincia
-EXEC SQLeros.MigrarBarrio
-EXEC SQLeros.MigrarLocalidad
-EXEC SQLeros.MigrarOrientacion
-EXEC SQLeros.MigrarDisposicion
-EXEC SQLeros.MigrarUbicacion
-EXEC SQLeros.MigrarCaracteristicaInmueble
-EXEC SQLeros.MigrarPersona
-EXEC SQLeros.MigrarPropietario
-EXEC SQLeros.MigrarInquilino
-EXEC SQLeros.MigrarComprador
-EXEC SQLeros.MigrarInmueble
-EXEC SQLeros.MigrarCaracteristicaInmueblePorInmueble
-EXEC SQLeros.MigrarSucursal
-EXEC SQLeros.MigrarAgente
-EXEC SQLeros.MigrarEstadoAnuncio
-EXEC SQLeros.MigrarTipoOperacion
-EXEC SQLeros.MigrarTipoPeriodo
-EXEC SQLeros.MigrarAnuncio
-EXEC SQLeros.MigrarAlquiler
-EXEC SQLeros.MigrarDetalleAlquiler
-EXEC SQLeros.MigrarVenta
-EXEC SQLeros.MigrarMedioDePago
-EXEC SQLeros.MigrarPagoAlquiler
+BEGIN TRANSACTION
+	BEGIN TRY
+		EXEC SQLeros.MigrarEstadoInmueble
+		EXEC SQLeros.MigrarTipoInmueble
+		EXEC SQLeros.MigrarAmbientes
+		EXEC SQLeros.MigrarProvincia
+		EXEC SQLeros.MigrarBarrio
+		EXEC SQLeros.MigrarLocalidad
+		EXEC SQLeros.MigrarOrientacion
+		EXEC SQLeros.MigrarDisposicion
+		EXEC SQLeros.MigrarUbicacion
+		EXEC SQLeros.MigrarCaracteristicaInmueble
+		EXEC SQLeros.MigrarPersona
+		EXEC SQLeros.MigrarPropietario
+		EXEC SQLeros.MigrarInquilino
+		EXEC SQLeros.MigrarComprador
+		EXEC SQLeros.MigrarInmueble
+		EXEC SQLeros.MigrarCaracteristicaInmueblePorInmueble
+		EXEC SQLeros.MigrarSucursal
+		EXEC SQLeros.MigrarAgente
+		EXEC SQLeros.MigrarEstadoAnuncio
+		EXEC SQLeros.MigrarTipoOperacion
+		EXEC SQLeros.MigrarTipoPeriodo
+		EXEC SQLeros.MigrarAnuncio
+		EXEC SQLeros.MigrarAlquiler
+		EXEC SQLeros.MigrarDetalleAlquiler
+		EXEC SQLeros.MigrarVenta
+		EXEC SQLeros.MigrarMedioDePago
+		EXEC SQLeros.MigrarPagoAlquiler
+		COMMIT TRANSACTION;
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION;
+	END CATCH

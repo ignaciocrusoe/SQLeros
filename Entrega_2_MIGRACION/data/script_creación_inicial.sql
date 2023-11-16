@@ -369,6 +369,7 @@ CREATE PROCEDURE SQLeros.MigrarEstadoAlquiler
 		BEGIN
 			INSERT INTO SQLeros.EstadoAlquiler(estadoalquiler_descripcion)
 			SELECT DISTINCT ALQUILER_ESTADO FROM gd_esquema.Maestra
+			WHERE ALQUILER_ESTADO IS NOT NULL
 			GROUP BY ALQUILER_ESTADO
 		END
 GO

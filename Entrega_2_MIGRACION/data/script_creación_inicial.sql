@@ -1,7 +1,9 @@
-/*
-CREATE SCHEMA SQLeros
+IF SCHEMA_ID('SQLeros') IS NULL
+	BEGIN
+		EXECUTE('CREATE SCHEMA SQLeros'	)
+	END
 GO
-*/
+
 USE GD2C2023
 
 IF OBJECT_ID('SQLeros.Persona', 'U') IS NOT NULL
@@ -94,6 +96,9 @@ DROP TABLE SQLeros.TipoPeriodo;
 IF OBJECT_ID('SQLeros.EstadoAlquiler', 'U') IS NOT NULL
 DROP TABLE SQLeros.EstadoAlquiler;
 
+IF OBJECT_ID('SQLeros.InquilinoPorAlquiler', 'U') IS NOT NULL
+DROP TABLE SQLeros.InquilinoPorAlquiler;
+
 /*CREACIÓN DE LAS TABLAS*/
 
 -- Creo la tabla Persona porque hay que almacenar los mismos datos para un propietario o inquilino
@@ -183,6 +188,13 @@ GO
 CREATE TABLE SQLeros.Inquilino(
 	inquilino_codigo INT IDENTITY PRIMARY KEY,
 	inquilino_persona INT,
+)
+GO
+
+CREATE TABLE SQLeros.InquilinoPorAlquiler(
+	inquilinoporalquiler_inquilino INT,
+	inquilinoporalquiler_alquiler INT,
+	CONSTRAINT InquilinoPorAlquilerPK PRIMARY KEY (inquilinoporalquiler_inquilino, inquilinoporalquiler_alquiler)
 )
 GO
 
@@ -785,14 +797,12 @@ GO
 CREATE PROCEDURE SQLeros.MigrarAlquiler
 	AS
 		BEGIN
-			INSERT INTO SQLeros.Alquiler (alq_codigo_maestra, alq_anuncio, alq_cant_periodos, alq_comision, alq_depositio, alq_fecha_fin, alq_fecha_inicio, alq_gastos, alq_inquilino, alq_precio, alq_estado)
-			SELECT DISTINCT ALQUILER_CODIGO, ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, inquilino_codigo, ANUNCIO_PRECIO_PUBLICADO, estadoalquiler_codigo
+			INSERT INTO SQLeros.Alquiler (alq_codigo_maestra, alq_anuncio, alq_cant_periodos, alq_comision, alq_depositio, alq_fecha_fin, alq_fecha_inicio, alq_gastos, alq_precio, alq_estado)
+			SELECT DISTINCT ALQUILER_CODIGO, ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, ANUNCIO_PRECIO_PUBLICADO, estadoalquiler_codigo
 			FROM gd_esquema.Maestra
 			JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
-			JOIN SQLeros.Persona ON pers_dni = INQUILINO_DNI
-			JOIN SQLeros.Inquilino ON inquilino_persona = pers_codigo
 			JOIN SQLeros.EstadoAlquiler ON estadoalquiler_descripcion = ALQUILER_ESTADO
-			GROUP BY ALQUILER_CODIGO, ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, inquilino_codigo, ANUNCIO_PRECIO_PUBLICADO, estadoalquiler_codigo
+			GROUP BY ALQUILER_CODIGO, ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, ANUNCIO_PRECIO_PUBLICADO, estadoalquiler_codigo
 		END
 GO
 
@@ -865,6 +875,22 @@ CREATE PROCEDURE SQLeros.MigrarPagoVenta
 			FROM gd_esquema.Maestra
 			JOIN SQLeros.MedioDePago ON medio_nombre = PAGO_VENTA_MEDIO_PAGO
 			JOIN SQLeros.Moneda ON moneda_nombre = PAGO_VENTA_MONEDA
+			GROUP BY VENTA_CODIGO, PAGO_VENTA_IMPORTE, moneda_codigo, PAGO_VENTA_COTIZACION, medio_codigo
+		END
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarInquilinoPorAlquiler')
+	DROP PROCEDURE SQLeros.MigrarInquilinoPorAlquiler
+GO
+CREATE PROCEDURE SQLeros.MigrarInquilinoPorAlquiler
+	AS
+		BEGIN
+			INSERT INTO SQLeros.InquilinoPorAlquiler(inquilinoporalquiler_inquilino, inquilinoporalquiler_alquiler)
+			SELECT DISTINCT inquilino_codigo, alquiler_codigo
+			FROM gd_esquema.Maestra
+			JOIN Persona ON INQUILINO_DNI = pers_dni
+			JOIN SQLeros.Inquilino ON inquilino_persona = pers_codigo
+			JOIN SQLeros.Alquiler ON alq_codigo_maestra = ALQUILER_CODIGO
 		END
 GO
 
@@ -899,6 +925,8 @@ BEGIN TRANSACTION
 		EXEC SQLeros.MigrarVenta
 		EXEC SQLeros.MigrarMedioDePago
 		EXEC SQLeros.MigrarPagoAlquiler
+		EXEC SQLeros.MigrarPagoVenta
+		EXEC SQLeros.MigrarInquilinoPorAlquiler
 		COMMIT TRANSACTION;
 	END TRY
 	BEGIN CATCH

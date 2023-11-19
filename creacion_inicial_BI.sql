@@ -8,8 +8,8 @@ IF OBJECT_ID('SQLeros.PrecioPromedioDeInmuebles', 'V') IS NOT NULL
 	DROP VIEW SQLeros.PrecioPromedioDeInmuebles
 GO
 
-IF OBJECT_ID('SQLeros.PorcentajeDeIncumplimientoDePagoDeAlquileres', 'V') IS NOT NULL
-	DROP VIEW SQLeros.PorcentajeDeIncumplimientoDePagoDeAlquileres
+IF OBJECT_ID('SQLeros.PorcentajeDeOperacionesConcretadas', 'V') IS NOT NULL
+	DROP VIEW SQLeros.PorcentajeDeOperacionesConcretadas
 GO
 
 IF OBJECT_ID('SQLeros.BI_RangoEtario', 'U') IS NOT NULL
@@ -67,13 +67,14 @@ JOIN SQLeros.Moneda ON moneda_codigo = anu_moneda
 GROUP BY tipooperacion_descripcion, tipoinmueble_descripcion, inm_superficie, moneda_nombre
 GO
 
-CREATE VIEW SQLeros.PorcentajeDeIncumplimientoDePagoDeAlquileres AS
+CREATE VIEW SQLeros.PorcentajeDeOperacionesConcretadas AS
 SELECT tipooperacion_descripcion,
-sucur_nombre,
+rangoetario_decripcion,
 FROM SQLeros.Anuncio
 JOIN SQLeros.Sucursal ON sucur_codigo = anu_sucursal
 JOIN SQLeros.TipoOperacion ON tipooperacion_codigo = anu_tipo_op
-JOIN SQLeros.Agente ON 
-JOIN SQLeros.Persona O
+JOIN SQLeros.Agente ON agen_codigo = anu_agente
+JOIN SQLeros.Persona ON pers_codigo = agen_persona
+JOIN SQLeros.BI_RangoEtario ON rangoetario_codigo
 
 SELECT * FROM SQLeros.PrecioPromedioDeInmuebles

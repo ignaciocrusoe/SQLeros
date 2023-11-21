@@ -1,3 +1,9 @@
+IF SCHEMA_ID('SQLeros') IS NULL
+	BEGIN
+		EXECUTE('CREATE SCHEMA SQLeros'	)
+	END
+GO
+
 USE GD2C2023
 
 IF OBJECT_ID('SQLeros.DuracionPromedioDeAnuncios', 'V') IS NOT NULL
@@ -20,6 +26,14 @@ IF OBJECT_ID('SQLeros.BI_RangoM2', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_RangoM2
 GO
 
+IF OBJECT_ID('SQLeros.BI_Inmueble', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_RangoM2
+GO
+
+IF OBJECT_ID('SQLeros.BI_Anuncio', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_RangoM2
+GO
+
 CREATE TABLE SQLeros.BI_RangoEtario(
 	rangoetario_codigo INT IDENTITY PRIMARY KEY,
 	rangoetario_descripcion VARCHAR(10)
@@ -29,6 +43,42 @@ GO
 CREATE TABLE SQLeros.BI_RangoM2(
 	rangom2_codigo INT IDENTITY PRIMARY KEY,
 	rangom2_descripcion VARCHAR(10)
+)
+GO
+
+--Fact table
+CREATE TABLE SQLeros.BI_Anuncio(
+	bi_anu_codigo INT IDENTITY PRIMARY KEY,
+	bi_anu_codigo_maestra INT,
+	bi_anu_agente INT,
+	bi_anu_inmueble INT,
+	bi_anu_sucursal INT,
+	bi_anu_fecha_pub SMALLDATETIME,
+	bi_anu_precio DECIMAL(12,2),
+	bi_anu_costo DECIMAL(12,2),
+	bi_anu_fecha_fin SMALLDATETIME,
+	bi_anu_tipo_op INT,
+	bi_anu_moneda INT,
+	bi_anu_estado INT,
+	bi_anu_tipo_periodo INT
+)
+GO
+
+CREATE TABLE SQLeros.BI_Inmueble(
+	bi_inm_codigo INT IDENTITY PRIMARY KEY,
+	bi_inm_codigo_maestra INT,
+	bi_inm_nombre VARCHAR(50),
+	bi_inm_descripcion VARCHAR(50),
+	bi_inm_direccion VARCHAR(100),
+	bi_inm_superficie INT,
+	bi_inm_antiguedad VARCHAR(50),
+	bi_inm_expensas DECIMAL(20,8),
+	bi_inm_ubicacion INT,
+	bi_inm_tipo INT,
+	bi_inm_ambientes INT,
+	bi_inm_orientacion INT,
+	bi_inm_disposicion INT,
+	bi_inm_estado INT,
 )
 GO
 
@@ -43,6 +93,17 @@ INSERT INTO SQLeros.RangoM2 (rangom2_descripcion) VALUES ('35-55')
 INSERT INTO SQLeros.RangoM2 (rangom2_descripcion) VALUES ('55-75')
 INSERT INTO SQLeros.RangoM2 (rangom2_descripcion) VALUES ('75-100')
 INSERT INTO SQLeros.RangoM2 (rangom2_descripcion) VALUES ('>100')
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarAnuncio')
+	DROP PROCEDURE SQLeros.MigrarOrientacion
+GO
+CREATE PROCEDURE SQLeros.BI_MigrarInmueble
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_Anuncio (bi_anu_agente, bi_anu_codigo, bi_anu_codigo_maestra, bi_anu_costo, bi_anu_estado, bi_anu_fecha_fin, bi_anu_fecha_pub, bi_anu_inmueble, bi_anu_moneda, bi_anu_precio, bi_anu_precio, bi_anu_sucursal, bi_anu_tipo_op, bi_anu_tipo_periodo)
+	SELECT DISTINCT anu_agente, anu_codigo, anu_codigo_maestra, anu_costo, anu_estado, anu_fecha_fin, anu_fecha_pub, anu_inmueble, anu_moneda, anu_precio, anu_precio, anu_sucursal, anu_tipo_op, anu_tipo_periodo FROM SQLeros.Anuncio
+END
 GO
 
 CREATE VIEW SQLeros.DuracionPromedioDeAnuncios AS

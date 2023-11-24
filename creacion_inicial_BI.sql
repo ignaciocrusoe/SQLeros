@@ -221,10 +221,18 @@ GO
 CREATE PROCEDURE SQLeros.BI_MigrarVentas
 AS
 BEGIN
-DELCARE @tiempo INT
-SQLeros.BI_MigrarTiempo(venta_fecha, @tiempo OUTPUT)
-INSERT INTO BI_Venta (bi_venta_anuncio, bi_venta_codigo, bi_venta_comision, bi_venta_comprador, bi_venta_fecha, bi_venta_anuncio)
-SELECT venta_anuncio, venta_codigo, venta_comision, venta_comprador, @tiempo, venta_anuncio FROM SQLeros.Venta
+	DECLARE @tiempo INT
+	DECLARE @venta_anuncio INT
+	DECLARE @venta_codigo INT
+	DECLARE @venta_comision INT
+	DECLARE @venta_comprador INT
+	DECLARE @venta_moneda INT
+	DECLARE c_ventas CURSOR FOR SELECT venta_anuncio, venta_codigo, venta_comision, venta_comprador, venta_fecha, venta_moneda, venta_precio FROM SQLeros.Venta
+	WHILE @@FETCH_STATUS = 0
+	BEGIN
+		INSERT INTO BI_Venta (bi_venta_anuncio, bi_venta_codigo, bi_venta_comision, bi_venta_comprador, bi_venta_fecha, bi_venta_moneda, bi_venta_precio, bi_venta_precio_m2)
+		VALUES (@venta_anuncio, @venta_codigo, @venta_comision, @venta_comprador, @tiempo, @venta_anuncio @venta_moneda)
+	END
 END
 
 /*VISTA 1*/

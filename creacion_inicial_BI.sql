@@ -28,7 +28,7 @@ IF OBJECT_ID('SQLeros.BI_Anuncio', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_Anuncio
 GO
 
-IF OBJECT_ID('SQLeros.DuracionPromedioDeAnuncios', 'FN') IS NOT NULL
+IF OBJECT_ID('SQLeros.f_rango_superficie', 'FN') IS NOT NULL
 	DROP FUNCTION SQLeros.f_rango_superficie
 GO
 
@@ -46,7 +46,7 @@ GO
 
 --Fact table
 CREATE TABLE SQLeros.BI_Anuncio(
-	bi_anu_codigo INT IDENTITY PRIMARY KEY,
+	bi_anu_codigo INT PRIMARY KEY,
 	bi_anu_codigo_maestra INT,
 	bi_anu_agente INT,
 	bi_anu_inmueble INT,
@@ -63,7 +63,7 @@ CREATE TABLE SQLeros.BI_Anuncio(
 GO
 
 CREATE TABLE SQLeros.BI_Inmueble(
-	bi_inm_codigo INT IDENTITY PRIMARY KEY,
+	bi_inm_codigo INT PRIMARY KEY,
 	bi_inm_codigo_maestra INT,
 	bi_inm_nombre VARCHAR(50),
 	bi_inm_descripcion VARCHAR(50),
@@ -80,41 +80,41 @@ CREATE TABLE SQLeros.BI_Inmueble(
 )
 GO
 
-INSERT INTO SQLeros.RangoEtario (rangoetario_descripcion) VALUES ('<25')
-INSERT INTO SQLeros.RangoEtario (rangoetario_descripcion) VALUES ('25-35')
-INSERT INTO SQLeros.RangoEtario (rangoetario_descripcion) VALUES ('35-50')
-INSERT INTO SQLeros.RangoEtario (rangoetario_descripcion) VALUES ('>50')
+INSERT INTO SQLeros.BI_RangoEtario (rangoetario_descripcion) VALUES ('<25')
+INSERT INTO SQLeros.BI_RangoEtario (rangoetario_descripcion) VALUES ('25-35')
+INSERT INTO SQLeros.BI_RangoEtario (rangoetario_descripcion) VALUES ('35-50')
+INSERT INTO SQLeros.BI_RangoEtario (rangoetario_descripcion) VALUES ('>50')
 GO
 
-INSERT INTO SQLeros.RangoM2 (rangom2_descripcion) VALUES ('<35')
-INSERT INTO SQLeros.RangoM2 (rangom2_descripcion) VALUES ('35-55')
-INSERT INTO SQLeros.RangoM2 (rangom2_descripcion) VALUES ('55-75')
-INSERT INTO SQLeros.RangoM2 (rangom2_descripcion) VALUES ('75-100')
-INSERT INTO SQLeros.RangoM2 (rangom2_descripcion) VALUES ('>100')
+INSERT INTO SQLeros.BI_RangoM2 (rangom2_descripcion) VALUES ('<35')
+INSERT INTO SQLeros.BI_RangoM2 (rangom2_descripcion) VALUES ('35-55')
+INSERT INTO SQLeros.BI_RangoM2 (rangom2_descripcion) VALUES ('55-75')
+INSERT INTO SQLeros.BI_RangoM2 (rangom2_descripcion) VALUES ('75-100')
+INSERT INTO SQLeros.BI_RangoM2 (rangom2_descripcion) VALUES ('>100')
 GO
 
-CREATE FUNCTION SQLeros.f_rango_superficie (@superficie VARCHAR(50))
+CREATE OR ALTER FUNCTION SQLeros.f_rango_superficie (@superficie VARCHAR(50))
 RETURNS INT
 AS
 BEGIN
 	DECLARE @rango INT
-	IF CAST(@superficie AS INT) < 35
+	IF CAST(@superficie AS DECIMAL(12,2)) < 35
 	BEGIN
 		SELECT @rango = rangom2_codigo FROM SQLeros.BI_RangoM2 WHERE rangom2_descripcion = '<35'
 	END
-	ELSE IF CAST(@superficie AS INT) >= 35 AND CAST(@superficie AS INT) <55
+	ELSE IF CAST(@superficie AS DECIMAL(12,2)) >= 35 AND CAST(@superficie AS DECIMAL(12,2)) <55
 	BEGIN
 		SELECT @rango = rangom2_codigo FROM SQLeros.BI_RangoM2 WHERE rangom2_descripcion = '35-55'
 	END
-	ELSE IF CAST(@superficie AS INT) >= 55 AND CAST(@superficie AS INT) <75
+	ELSE IF CAST(@superficie AS DECIMAL(12,2)) >= 55 AND CAST(@superficie AS DECIMAL(12,2)) <75
 	BEGIN
 		SELECT @rango = rangom2_codigo FROM SQLeros.BI_RangoM2 WHERE rangom2_descripcion = '55-75'
 	END
-	ELSE IF CAST(@superficie AS INT) >= 75 AND CAST(@superficie AS INT) <100
+	ELSE IF CAST(@superficie AS DECIMAL(12,2)) >= 75 AND CAST(@superficie AS DECIMAL(12,2)) <100
 	BEGIN
 		SELECT @rango = rangom2_codigo FROM SQLeros.BI_RangoM2 WHERE rangom2_descripcion = '75-100'
 	END
-	ELSE IF CAST(@superficie AS INT) >= 100
+	ELSE IF CAST(@superficie AS DECIMAL(12,2)) >= 100
 	BEGIN
 		SELECT @rango = rangom2_codigo FROM SQLeros.BI_RangoM2 WHERE rangom2_descripcion = '>100'
 	END
@@ -128,13 +128,10 @@ GO
 CREATE PROCEDURE SQLeros.BI_MigrarAnuncio
 AS
 BEGIN
-	INSERT INTO SQLeros.BI_Anuncio (bi_anu_agente, bi_anu_codigo, bi_anu_codigo_maestra, bi_anu_costo, bi_anu_estado, bi_anu_fecha_fin, bi_anu_fecha_pub, bi_anu_inmueble, bi_anu_moneda, bi_anu_precio, bi_anu_precio, bi_anu_sucursal, bi_anu_tipo_op, bi_anu_tipo_periodo)
-	SELECT DISTINCT anu_agente, anu_codigo, anu_codigo_maestra, anu_costo, anu_estado, anu_fecha_fin, anu_fecha_pub, anu_inmueble, anu_moneda, anu_precio, anu_precio, anu_sucursal, anu_tipo_op, anu_tipo_periodo FROM SQLeros.Anuncio
+	INSERT INTO SQLeros.BI_Anuncio (bi_anu_agente, bi_anu_codigo, bi_anu_codigo_maestra, bi_anu_costo, bi_anu_estado, bi_anu_fecha_fin, bi_anu_fecha_pub, bi_anu_inmueble, bi_anu_moneda, bi_anu_precio, bi_anu_sucursal, bi_anu_tipo_op, bi_anu_tipo_periodo)
+	SELECT DISTINCT anu_agente, anu_codigo, anu_codigo_maestra, anu_costo, anu_estado, anu_fecha_fin, anu_fecha_pub, anu_inmueble, anu_moneda, anu_precio, anu_sucursal, anu_tipo_op, anu_tipo_periodo FROM SQLeros.Anuncio
 END
 GO
-
-
-
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarInmueble')
 	DROP PROCEDURE SQLeros.BI_MigrarInmueble
@@ -184,3 +181,15 @@ JOIN SQLeros.BI_RangoEtario ON rangoetario_codigo
 
 SELECT * FROM SQLeros.PrecioPromedioDeInmuebles
 */
+
+
+BEGIN TRANSACTION
+	BEGIN TRY
+		EXEC SQLeros.BI_MigrarAnuncio
+		EXEC SQLeros.BI_MigrarInmueble
+		COMMIT TRANSACTION;
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION;
+	END CATCH
+

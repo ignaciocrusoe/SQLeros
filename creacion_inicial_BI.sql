@@ -1,15 +1,19 @@
 USE GD2C2023
 
-IF OBJECT_ID('SQLeros.DuracionPromedioDeAnuncios', 'V') IS NOT NULL
-	DROP VIEW SQLeros.DuracionPromedioDeAnuncios
+IF OBJECT_ID('SQLeros.BI_DuracionPromedioDeAnuncios', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_DuracionPromedioDeAnuncios
 GO
 
-IF OBJECT_ID('SQLeros.PrecioPromedioDeInmuebles', 'V') IS NOT NULL
-	DROP VIEW SQLeros.PrecioPromedioDeInmuebles
+IF OBJECT_ID('SQLeros.BI_PrecioPromedioDeInmuebles', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_PrecioPromedioDeInmuebles
 GO
 
-IF OBJECT_ID('SQLeros.PorcentajeDeOperacionesConcretadas', 'V') IS NOT NULL
-	DROP VIEW SQLeros.PorcentajeDeOperacionesConcretadas
+IF OBJECT_ID('SQLeros.BI_PorcentajeDeOperacionesConcretadas', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_PorcentajeDeOperacionesConcretadas
+GO
+
+IF OBJECT_ID('SQLeros.BI_Tiempo', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_Tiempo
 GO
 
 IF OBJECT_ID('SQLeros.BI_RangoEtario', 'U') IS NOT NULL
@@ -24,6 +28,10 @@ IF OBJECT_ID('SQLeros.BI_Inmueble', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_Inmueble
 GO
 
+IF OBJECT_ID('SQLeros.BI_Venta', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_Venta
+GO
+
 IF OBJECT_ID('SQLeros.BI_Anuncio', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_Anuncio
 GO
@@ -31,6 +39,18 @@ GO
 IF OBJECT_ID('SQLeros.f_rango_superficie', 'FN') IS NOT NULL
 	DROP FUNCTION SQLeros.f_rango_superficie
 GO
+
+IF OBJECT_ID('SQLeros.BI_ObtenerCuatrimestre', 'FN') IS NOT NULL
+	DROP FUNCTION SQLeros.BI_ObtenerCuatrimestre
+GO
+
+CREATE TABLE SQLeros.BI_Tiempo(
+	bi_tiempo_codigo INT IDENTITY PRIMARY KEY,
+	bi_tiempo_year INT,
+	bi_tiempo_month INT,
+	bi_tiempo_day INT,
+	bi_tiempo_cuatrimestre INT
+)
 
 CREATE TABLE SQLeros.BI_RangoEtario(
 	rangoetario_codigo INT IDENTITY PRIMARY KEY,
@@ -41,6 +61,18 @@ GO
 CREATE TABLE SQLeros.BI_RangoM2(
 	rangom2_codigo INT IDENTITY PRIMARY KEY,
 	rangom2_descripcion VARCHAR(10)
+)
+GO
+
+CREATE TABLE SQLeros.BI_Venta(
+	 bi_venta_codigo INT IDENTITY PRIMARY KEY,
+	 bi_venta_comprador INT,
+	 bi_venta_anuncio INT,
+	 bi_venta_fecha SMALLDATETIME,
+	 bi_venta_precio DECIMAL(12,2),
+	 bi_venta_comision DECIMAL(12,2),
+	 bi_venta_moneda INT,
+	 bi_venta_precio_m2 DECIMAL(12,2)
 )
 GO
 
@@ -68,7 +100,8 @@ CREATE TABLE SQLeros.BI_Inmueble(
 	bi_inm_nombre VARCHAR(50),
 	bi_inm_descripcion VARCHAR(50),
 	bi_inm_direccion VARCHAR(100),
-	bi_inm_superficie INT,
+	bi_inm_superficie DECIMAL(12,2),
+	bi_inm_rango_superficie DECIMAL(12,2),
 	bi_inm_antiguedad VARCHAR(50),
 	bi_inm_expensas DECIMAL(20,8),
 	bi_inm_ubicacion INT,
@@ -93,7 +126,7 @@ INSERT INTO SQLeros.BI_RangoM2 (rangom2_descripcion) VALUES ('75-100')
 INSERT INTO SQLeros.BI_RangoM2 (rangom2_descripcion) VALUES ('>100')
 GO
 
-CREATE OR ALTER FUNCTION SQLeros.f_rango_superficie (@superficie VARCHAR(50))
+CREATE FUNCTION SQLeros.f_rango_superficie (@superficie VARCHAR(50))
 RETURNS INT
 AS
 BEGIN
@@ -122,6 +155,45 @@ BEGIN
 END
 GO
 
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarTiempo')
+	DROP PROCEDURE SQLeros.BI_MigrarTiempo
+GO
+
+CREATE FUNCTION SQLeros.BI_ObtenerCuatrimestre(@mes INT)
+RETURNS INT
+AS
+BEGIN
+	DECLARE @cuatrimestre INT
+	IF (@mes >= 0 AND @mes < 3)
+	BEGIN
+		SET @cuatrimestre = 1
+	END
+	ELSE IF (@mes >= 3 AND @mes < 6)
+	BEGIN
+		SET @cuatrimestre = 2
+	END
+	ELSE IF (@mes >= 6 AND @mes < 9)
+	BEGIN
+		SET @cuatrimestre = 3
+	END
+	ELSE IF (@mes >= 9 AND @mes <= 12)
+	BEGIN
+		SET @cuatrimestre = 4
+	END
+	RETURN @cuatrimestre
+END
+GO
+
+CREATE PROCEDURE SQLeros.BI_MigrarTiempo (@tiempo SMALLDATETIME, @key INT OUTPUT)
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_Tiempo (bi_tiempo_cuatrimestre, bi_tiempo_day, bi_tiempo_month, bi_tiempo_year)
+	VALUES (SQLeros.BI_ObtenerCuatrimestre(MONTH(@tiempo)), DAY(@tiempo), MONTH(@tiempo), YEAR(@tiempo))
+	@key SCOPE_IDENTITY()
+END
+GO
+
+
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarAnuncio')
 	DROP PROCEDURE SQLeros.BI_MigrarAnuncio
 GO
@@ -140,13 +212,23 @@ CREATE PROCEDURE SQLeros.BI_MigrarInmueble
 AS
 BEGIN
 	DECLARE @superficie INT
-	INSERT INTO SQLeros.BI_Inmueble (bi_inm_ambientes, bi_inm_antiguedad, bi_inm_codigo, bi_inm_codigo_maestra, bi_inm_descripcion, bi_inm_direccion, bi_inm_disposicion, bi_inm_estado, bi_inm_expensas, bi_inm_nombre, bi_inm_orientacion, bi_inm_superficie, bi_inm_tipo, bi_inm_ubicacion) 
-	SELECT DISTINCT inm_ambientes, inm_antiguedad, inm_codigo, inm_codigo_maestra, inm_descripcion, inm_direccion, inm_disposicion, inm_estado, inm_expensas, inm_nombre, inm_orientacion, SQLeros.f_rango_superficie(inm_superficie), inm_tipo, inm_ubicacion FROM SQLeros.Inmueble
+	INSERT INTO SQLeros.BI_Inmueble (bi_inm_ambientes, bi_inm_antiguedad, bi_inm_codigo, bi_inm_codigo_maestra, bi_inm_descripcion, bi_inm_direccion, bi_inm_disposicion, bi_inm_estado, bi_inm_expensas, bi_inm_nombre, bi_inm_orientacion, bi_inm_rango_superficie, bi_inm_superficie, bi_inm_tipo, bi_inm_ubicacion) 
+	SELECT DISTINCT inm_ambientes, inm_antiguedad, inm_codigo, inm_codigo_maestra, inm_descripcion, inm_direccion, inm_disposicion, inm_estado, inm_expensas, inm_nombre, inm_orientacion, SQLeros.f_rango_superficie(inm_superficie), CAST(inm_superficie AS DECIMAL(12,2)), inm_tipo, inm_ubicacion FROM SQLeros.Inmueble
 
 END
 GO
 
-CREATE VIEW SQLeros.DuracionPromedioDeAnuncios AS
+CREATE PROCEDURE SQLeros.BI_MigrarVentas
+AS
+BEGIN
+DELCARE @tiempo INT
+SQLeros.BI_MigrarTiempo(venta_fecha, @tiempo OUTPUT)
+INSERT INTO BI_Venta (bi_venta_anuncio, bi_venta_codigo, bi_venta_comision, bi_venta_comprador, bi_venta_fecha, bi_venta_anuncio)
+SELECT venta_anuncio, venta_codigo, venta_comision, venta_comprador, @tiempo, venta_anuncio FROM SQLeros.Venta
+END
+
+/*VISTA 1*/
+CREATE VIEW SQLeros.BI_DuracionPromedioDeAnuncios AS
 SELECT tipooperacion_descripcion AS [Tipo de operación],
 AVG(DATEDIFF(DAY, anu_fecha_pub, anu_fecha_fin)) AS [Promedio]
 FROM SQLeros.Anuncio
@@ -154,7 +236,8 @@ JOIN SQLeros.TipoOperacion ON tipooperacion_codigo = anu_tipo_op
 GROUP BY tipooperacion_descripcion
 GO
 
-CREATE VIEW SQLeros.PrecioPromedioDeInmuebles AS
+/*VISTA 2*/
+CREATE VIEW SQLeros.BI_PrecioPromedioDeInmuebles AS
 SELECT tipooperacion_descripcion AS [Tipo de operación],
 tipoinmueble_descripcion AS [Tipo de inmueble],
 inm_superficie AS [Rango m2],
@@ -167,6 +250,16 @@ JOIN SQLeros.TipoInmueble ON tipoinmueble_codigo = inm_tipo
 JOIN SQLeros.Moneda ON moneda_codigo = anu_moneda
 GROUP BY tipooperacion_descripcion, tipoinmueble_descripcion, inm_superficie, moneda_nombre
 GO
+
+/*VISTA 6*/ --En proceso
+CREATE VIEW SQLeros.BI_PrecioPromedioDeM2 AS
+SELECT AVG(venta_precio / bi_inm_superficie) AS [Promedio] FROM SQLeros.BI_Anuncio
+JOIN SQLeros.BI_Inmueble ON bi_inm_codigo = bi_anu_inmueble
+JOIN SQLeros.TipoOperacion ON tipooperacion_codigo = bi_anu_tipo_op
+JOIN SQLeros.Venta ON venta_anuncio = bi_anu_codigo
+GROUP BY bi_inm_tipo, bi_inm_ubicacion, venta_fecha
+GO
+
 
 /*
 CREATE VIEW SQLeros.PorcentajeDeOperacionesConcretadas AS

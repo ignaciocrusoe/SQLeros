@@ -12,6 +12,10 @@ IF OBJECT_ID('SQLeros.BI_PorcentajeDeOperacionesConcretadas', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_PorcentajeDeOperacionesConcretadas
 GO
 
+IF OBJECT_ID('SQLeros.BI_PrecioPromedioDeM2', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_PrecioPromedioDeM2
+GO
+
 IF OBJECT_ID('SQLeros.BI_Tiempo', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_Tiempo
 GO
@@ -65,7 +69,7 @@ CREATE TABLE SQLeros.BI_RangoM2(
 GO
 
 CREATE TABLE SQLeros.BI_Venta(
-	 bi_venta_codigo INT IDENTITY PRIMARY KEY,
+	 bi_venta_codigo INT PRIMARY KEY,
 	 bi_venta_comprador INT,
 	 bi_venta_anuncio INT,
 	 bi_venta_fecha SMALLDATETIME,
@@ -189,7 +193,7 @@ AS
 BEGIN
 	INSERT INTO SQLeros.BI_Tiempo (bi_tiempo_cuatrimestre, bi_tiempo_day, bi_tiempo_month, bi_tiempo_year)
 	VALUES (SQLeros.BI_ObtenerCuatrimestre(MONTH(@tiempo)), DAY(@tiempo), MONTH(@tiempo), YEAR(@tiempo))
-	@key SCOPE_IDENTITY()
+	SET @key = SCOPE_IDENTITY()
 END
 GO
 
@@ -218,22 +222,39 @@ BEGIN
 END
 GO
 
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarVentas')
+	DROP PROCEDURE SQLeros.BI_MigrarVentas
+GO
+
 CREATE PROCEDURE SQLeros.BI_MigrarVentas
 AS
 BEGIN
+	DECLARE @fecha SMALLDATETIME
 	DECLARE @tiempo INT
 	DECLARE @venta_anuncio INT
+	DECLARE @precio DECIMAL(12,2)
+	DECLARE @preciom2 DECIMAL(12,2)
+	DECLARE @superficie DECIMAL(12,2)
 	DECLARE @venta_codigo INT
 	DECLARE @venta_comision INT
+	DECLARE @moneda INT
 	DECLARE @venta_comprador INT
 	DECLARE @venta_moneda INT
-	DECLARE c_ventas CURSOR FOR SELECT venta_anuncio, venta_codigo, venta_comision, venta_comprador, venta_fecha, venta_moneda, venta_precio FROM SQLeros.Venta
+	DECLARE c_ventas CURSOR FOR SELECT venta_anuncio, venta_codigo, venta_comision, venta_comprador, venta_fecha, venta_moneda, venta_precio, inm_superficie FROM SQLeros.Venta JOIN SQLeros.Anuncio ON anu_codigo = venta_anuncio JOIN SQLeros.Inmueble ON inm_codigo = anu_inmueble
+	OPEN c_ventas
+	FETCH NEXT FROM c_ventas INTO @venta_anuncio, @venta_codigo, @venta_comision, @venta_comprador, @fecha, @moneda, @precio, @superficie
 	WHILE @@FETCH_STATUS = 0
 	BEGIN
+		EXEC SQLeros.BI_MigrarTiempo @fecha, @tiempo OUTPUT
+		SET @preciom2 = @precio / @superficie
 		INSERT INTO BI_Venta (bi_venta_anuncio, bi_venta_codigo, bi_venta_comision, bi_venta_comprador, bi_venta_fecha, bi_venta_moneda, bi_venta_precio, bi_venta_precio_m2)
-		VALUES (@venta_anuncio, @venta_codigo, @venta_comision, @venta_comprador, @tiempo, @venta_anuncio @venta_moneda)
+		VALUES (@venta_anuncio, @venta_codigo, @venta_comision, @venta_comprador, @tiempo, @moneda, @precio, @preciom2)
+		FETCH NEXT FROM c_ventas INTO @venta_anuncio, @venta_codigo, @venta_comision, @venta_comprador, @fecha, @moneda, @precio, @superficie
 	END
+	CLOSE c_ventas
+	DEALLOCATE c_ventas
 END
+GO
 
 /*VISTA 1*/
 CREATE VIEW SQLeros.BI_DuracionPromedioDeAnuncios AS
@@ -288,6 +309,7 @@ BEGIN TRANSACTION
 	BEGIN TRY
 		EXEC SQLeros.BI_MigrarAnuncio
 		EXEC SQLeros.BI_MigrarInmueble
+		EXEC SQLeros.BI_MigrarVentas
 		COMMIT TRANSACTION;
 	END TRY
 	BEGIN CATCH

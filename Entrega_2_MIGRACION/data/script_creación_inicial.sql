@@ -814,8 +814,9 @@ CREATE PROCEDURE SQLeros.MigrarDetalleAlquiler
 	AS
 		BEGIN
 			INSERT INTO SQLeros.DetalleAlquiler (detallealq_alquiler, detallealq_nro_periodo_final, detallealq_nro_periodo_inicial, detallealq_precio)
-			SELECT alquiler_codigo, DETALLE_ALQ_NRO_PERIODO_FIN, DETALLE_ALQ_NRO_PERIODO_INI, DETALLE_ALQ_PRECIO FROM gd_esquema.Maestra
+			SELECT DISTINCT alquiler_codigo, DETALLE_ALQ_NRO_PERIODO_FIN, DETALLE_ALQ_NRO_PERIODO_INI, DETALLE_ALQ_PRECIO FROM gd_esquema.Maestra
 			JOIN SQLeros.Alquiler ON alq_codigo_maestra = ALQUILER_CODIGO
+			WHERE DETALLE_ALQ_PRECIO IS NOT NULL
 		END
 GO
 
@@ -862,7 +863,7 @@ CREATE PROCEDURE SQLeros.MigrarPagoAlquiler
 			SELECT DISTINCT PAGO_ALQUILER_CODIGO, alq_codigo, PAGO_ALQUILER_DESC, PAGO_ALQUILER_FECHA, PAGO_ALQUILER_FEC_FIN, PAGO_ALQUILER_FEC_INI, PAGO_ALQUILER_IMPORTE, medio_codigo, PAGO_ALQUILER_NRO_PERIODO, PAGO_ALQUILER_FECHA_VENCIMIENTO
 			FROM gd_esquema.Maestra
 			JOIN SQLeros.MedioDePago ON medio_nombre = PAGO_ALQUILER_MEDIO_PAGO
-			JOIN SQLeros.Alquiler ON alq_codigo_maestra = ALQUILER_CODIGO 
+			JOIN SQLeros.Alquiler ON alq_codigo_maestra = ALQUILER_CODIGO
 		END
 GO
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarPagoVenta')

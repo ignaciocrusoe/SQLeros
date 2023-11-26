@@ -509,7 +509,7 @@ WHERE bi_pagoAlq_estado = 'Activo'
 GROUP BY bi_tiempo_year, bi_tiempo_month
 GO
 
-/*VISTA 6*/ --En proceso
+/*VISTA 6*/
 CREATE VIEW SQLeros.BI_PrecioPromedioDeM2 AS
 SELECT tipoinmueble_descripcion, localidad_descripcion, AVG(bi_venta_precio / bi_inm_superficie) AS [Promedio] FROM SQLeros.BI_Anuncio
 JOIN SQLeros.BI_Inmueble ON bi_inm_codigo = bi_anu_inmueble

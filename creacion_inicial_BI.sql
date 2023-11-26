@@ -20,6 +20,10 @@ IF OBJECT_ID('SQLeros.BI_PrecioPromedioDeM2', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_PrecioPromedioDeM2
 GO
 
+IF OBJECT_ID('SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler
+GO
+
 IF OBJECT_ID('SQLeros.BI_Tiempo', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_Tiempo
 GO
@@ -114,7 +118,8 @@ CREATE TABLE SQLeros.BI_Anuncio(
 	bi_anu_tipo_op INT,
 	bi_anu_moneda INT,
 	bi_anu_estado INT,
-	bi_anu_tipo_periodo INT
+	bi_anu_tipo_periodo INT,
+	bi_anu_comision DECIMAL(12,2)
 )
 GO
 
@@ -290,6 +295,7 @@ BEGIN
 	DECLARE @anu_inmueble INT
 	DECLARE @anu_moneda INT
 	DECLARE @anu_precio DECIMAL(12,2)
+	DECLARE @comision DECIMAL(12,2)
 	DECLARE @anu_sucursal INT, @anu_tipo_op INT, @anu_tipo_periodo  INT
 
 	DECLARE c_anuncios CURSOR FOR
@@ -298,10 +304,20 @@ BEGIN
 	FETCH NEXT FROM c_anuncios INTO @anu_agente, @anu_codigo, @anu_costo, @anu_estado, @anu_fecha_fin, @anu_fecha_pub, @anu_inmueble, @anu_moneda, @anu_precio, @anu_sucursal, @anu_tipo_op, @anu_tipo_periodo
 	WHILE @@FETCH_STATUS = 0
 	BEGIN
+		
+		IF (SELECT tipooperacion_descripcion FROM SQLeros.TipoOperacion WHERE tipooperacion_codigo = @anu_tipo_op) = 'Tipo Operación Venta'
+		BEGIN
+			SELECT @comision = bi_venta_comision FROM SQLeros.BI_Venta WHERE bi_venta_anuncio = @anu_codigo
+		END
+		ELSE
+		BEGIN
+			SELECT @comision = alq_comision FROM SQLeros.Alquiler WHERE alq_anuncio = @anu_codigo
+		END
+
 		EXEC SQLeros.BI_MigrarTiempo @anu_fecha_fin, @tiempo_final OUTPUT
 		EXEC SQLeros.BI_MigrarTiempo @anu_fecha_pub, @tiempo_publicacion OUTPUT
-		INSERT INTO SQLeros.BI_Anuncio (bi_anu_agente, bi_anu_codigo, bi_anu_costo, bi_anu_estado, bi_anu_tiempo_fin, bi_anu_tiempo_pub, bi_anu_inmueble, bi_anu_moneda, bi_anu_precio, bi_anu_sucursal, bi_anu_tipo_op, bi_anu_tipo_periodo)
-		VALUES (@anu_agente, @anu_codigo, @anu_costo, @anu_estado, @tiempo_final, @tiempo_publicacion, @anu_inmueble, @anu_moneda, @anu_precio, @anu_sucursal, @anu_tipo_op, @anu_tipo_periodo)
+		INSERT INTO SQLeros.BI_Anuncio (bi_anu_comision, bi_anu_agente, bi_anu_codigo, bi_anu_costo, bi_anu_estado, bi_anu_tiempo_fin, bi_anu_tiempo_pub, bi_anu_inmueble, bi_anu_moneda, bi_anu_precio, bi_anu_sucursal, bi_anu_tipo_op, bi_anu_tipo_periodo)
+		VALUES (@comision, @anu_agente, @anu_codigo, @anu_costo, @anu_estado, @tiempo_final, @tiempo_publicacion, @anu_inmueble, @anu_moneda, @anu_precio, @anu_sucursal, @anu_tipo_op, @anu_tipo_periodo)
 		FETCH NEXT FROM c_anuncios INTO @anu_agente, @anu_codigo, @anu_costo, @anu_estado, @anu_fecha_fin, @anu_fecha_pub, @anu_inmueble, @anu_moneda, @anu_precio, @anu_sucursal, @anu_tipo_op, @anu_tipo_periodo
 	END
 	CLOSE c_anuncios
@@ -367,6 +383,7 @@ BEGIN
 	DEALLOCATE c_ventas
 END
 GO
+/*
 CREATE PROCEDURE SQLeros.BI_MigrarPagoAlq
 AS
 BEGIN
@@ -387,7 +404,7 @@ BEGIN
 	CLOSE c_pagoAlq DEALLOCATE c_pagoAlq
 END
 GO
-
+*/
 /*VISTA 1*/
 CREATE VIEW SQLeros.BI_DuracionPromedioDeAnuncios AS
 SELECT tipooperacion_descripcion AS [Tipo de operación],
@@ -425,8 +442,9 @@ JOIN SQLeros.BI_Persona ON pers_codigo = inquilino_persona
 JOIN SQLeros.BI_RangoEtario ON rangoetario_codigo = pers_rango_etario
 JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_anu_tiempo_pub
 GROUP BY rangoetario_codigo, rangoetario_descripcion, barrio_codigo, barrio_descripcion, bi_tiempo_cuatrimestre, bi_tiempo_year
-ORDER BY COUNT(alq_codigo) DESC
-
+--ORDER BY COUNT(alq_codigo) DESC
+GO
+/*
 SELECT rangoetario_descripcion,
 	   bi_tiempo_cuatrimestre,
 	  (SELECT TOP 5 barrio_descripcion FROM SQLeros.Barrio
@@ -440,6 +458,7 @@ JOIN SQLeros.BI_Persona ON pers_codigo = inquilino_persona
 JOIN SQLeros.BI_RangoEtario ON rangoetario_codigo = pers_rango_etario
 JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_anu_tiempo_pub
 GO
+*/
 
 /*VISTA 4*/
 CREATE VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler AS
@@ -455,9 +474,9 @@ GO
 
 /*VISTA 5*/
 -- ¿"Alquiler activo" == fechaFin > fecha hoy?
-CREATE VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler AS SELECT * from BI_alquiler
+--CREATE VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler AS SELECT * from BI_alquiler
 	
-GO
+--GO
 
 /*VISTA 6*/ --En proceso
 CREATE VIEW SQLeros.BI_PrecioPromedioDeM2 AS

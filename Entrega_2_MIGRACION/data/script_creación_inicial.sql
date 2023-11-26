@@ -207,6 +207,7 @@ GO
 CREATE TABLE SQLeros.Alquiler(
 	alq_codigo INT IDENTITY PRIMARY KEY,
 	alq_codigo_maestra INT,
+	alq_inquilino INT,
 	alq_anuncio INT,
 	alq_fecha_inicio SMALLDATETIME,
 	alq_fecha_fin SMALLDATETIME,
@@ -798,11 +799,12 @@ CREATE PROCEDURE SQLeros.MigrarAlquiler
 	AS
 		BEGIN
 			INSERT INTO SQLeros.Alquiler (alq_codigo_maestra, alq_anuncio, alq_cant_periodos, alq_comision, alq_depositio, alq_fecha_fin, alq_fecha_inicio, alq_gastos, alq_precio, alq_estado)
-			SELECT DISTINCT ALQUILER_CODIGO, ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, ANUNCIO_PRECIO_PUBLICADO, estadoalquiler_codigo
+			SELECT DISTINCT ALQUILER_CODIGO, anu_codigo, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, ANUNCIO_PRECIO_PUBLICADO, estadoalquiler_codigo
 			FROM gd_esquema.Maestra
 			JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
 			JOIN SQLeros.EstadoAlquiler ON estadoalquiler_descripcion = ALQUILER_ESTADO
-			GROUP BY ALQUILER_CODIGO, ANUNCIO_CODIGO, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, ANUNCIO_PRECIO_PUBLICADO, estadoalquiler_codigo
+			JOIN SQLeros.Anuncio ON anu_codigo_maestra = ANUNCIO_CODIGO
+			GROUP BY ALQUILER_CODIGO, anu_codigo, ALQUILER_CANT_PERIODOS, ALQUILER_COMISION, ALQUILER_DEPOSITO, ALQUILER_FECHA_FIN, ALQUILER_FECHA_INICIO, ALQUILER_GASTOS_AVERIGUA, ANUNCIO_PRECIO_PUBLICADO, estadoalquiler_codigo
 		END
 GO
 
@@ -828,7 +830,7 @@ CREATE PROCEDURE SQLeros.MigrarVenta
 			INSERT INTO SQLeros.Venta (venta_codigo_maestra, venta_anuncio, venta_comision, venta_comprador, venta_fecha, venta_moneda, venta_precio)
 			SELECT DISTINCT VENTA_CODIGO, anuncio_codigo, VENTA_COMISION, comprador_codigo, VENTA_FECHA, moneda_codigo, VENTA_PRECIO_VENTA
 			FROM gd_esquema.Maestra
-			JOIN SQLeros.Anuncio ON anuncio_codigo = ANUNCIO_CODIGO
+			JOIN SQLeros.Anuncio ON anu_codigo_maestra = ANUNCIO_CODIGO
 			JOIN SQLeros.Persona ON pers_dni = COMPRADOR_DNI
 			JOIN SQLeros.Comprador ON comprador_persona = pers_codigo
 			JOIN SQLeros.Moneda ON moneda_nombre = VENTA_MONEDA
@@ -859,11 +861,10 @@ CREATE PROCEDURE SQLeros.MigrarPagoAlquiler
 	AS
 		BEGIN
 			INSERT INTO SQLeros.PagoAlquiler (pagoalq_codigo_maestra, pagoalq_alquiler, pagoalq_descripcion_periodo, pagoalq_fecha, pagoalq_fecha_fin, pagoalq_fecha_inicio, pagoalq_importe, pagoalq_medio, pagoalq_nro_periodo, pagoalq_vencimiento)
-			SELECT DISTINCT PAGO_ALQUILER_CODIGO, detallealq_codigo, PAGO_ALQUILER_DESC, PAGO_ALQUILER_FECHA, PAGO_ALQUILER_FEC_FIN, PAGO_ALQUILER_FEC_INI, PAGO_ALQUILER_IMPORTE, medio_codigo, PAGO_ALQUILER_NRO_PERIODO, PAGO_ALQUILER_FECHA_VENCIMIENTO
+			SELECT DISTINCT PAGO_ALQUILER_CODIGO, alq_codigo, PAGO_ALQUILER_DESC, PAGO_ALQUILER_FECHA, PAGO_ALQUILER_FEC_FIN, PAGO_ALQUILER_FEC_INI, PAGO_ALQUILER_IMPORTE, medio_codigo, PAGO_ALQUILER_NRO_PERIODO, PAGO_ALQUILER_FECHA_VENCIMIENTO
 			FROM gd_esquema.Maestra
 			JOIN SQLeros.MedioDePago ON medio_nombre = PAGO_ALQUILER_MEDIO_PAGO
 			JOIN SQLeros.Alquiler ON alq_codigo_maestra = ALQUILER_CODIGO
-			JOIN SQLeros.DetalleAlquiler ON alq_codigo = detallealq_alquiler
 		END
 GO
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'MigrarPagoVenta')
@@ -888,9 +889,9 @@ CREATE PROCEDURE SQLeros.MigrarInquilinoPorAlquiler
 	AS
 		BEGIN
 			INSERT INTO SQLeros.InquilinoPorAlquiler(inquilinoporalquiler_inquilino, inquilinoporalquiler_alquiler)
-			SELECT DISTINCT inquilino_codigo, alq_codigo
+			SELECT DISTINCT inquilino_codigo, alquiler_codigo
 			FROM gd_esquema.Maestra
-			JOIN SQLeros.Persona ON INQUILINO_DNI = pers_dni
+			JOIN Persona ON INQUILINO_DNI = pers_dni
 			JOIN SQLeros.Inquilino ON inquilino_persona = pers_codigo
 			JOIN SQLeros.Alquiler ON alq_codigo_maestra = ALQUILER_CODIGO
 		END

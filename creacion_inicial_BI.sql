@@ -498,17 +498,21 @@ JOIN SQLeros.TipoOperacion ON tipooperacion_codigo = bi_anu_tipo_op
 JOIN SQLeros.Sucursal ON sucur_codigo = bi_anu_sucursal
 GROUP BY tipooperacion_codigo, tipooperacion_descripcion, sucur_codigo, sucur_nombre
 GO
-/*
+
+/*VISTA 8*/
 CREATE VIEW SQLeros.PorcentajeDeOperacionesConcretadas AS
 SELECT tipooperacion_descripcion,
-rangoetario_decripcion,
-FROM SQLeros.Anuncio
-JOIN SQLeros.Sucursal ON sucur_codigo = anu_sucursal
-JOIN SQLeros.TipoOperacion ON tipooperacion_codigo = anu_tipo_op
-JOIN SQLeros.Agente ON agen_codigo = anu_agente
-JOIN SQLeros.Persona ON pers_codigo = agen_persona
-JOIN SQLeros.BI_RangoEtario ON rangoetario_codigo
-
+rangoetario_descripcion,
+((SELECT SUM(bi_venta_codigo) FROM SQLeros.BI_Venta WHERE bi_venta_anuncio = A.bi_anu_codigo) / (SELECT SUM(bi_anu_codigo) FROM SQLeros.BI_Anuncio)) AS [-]
+FROM SQLeros.BI_Anuncio A
+JOIN SQLeros.Sucursal ON sucur_codigo = bi_anu_sucursal
+JOIN SQLeros.TipoOperacion ON tipooperacion_codigo = bi_anu_tipo_op
+JOIN SQLeros.Agente ON agen_codigo = bi_anu_agente
+JOIN SQLeros.BI_Persona ON pers_codigo = agen_persona
+JOIN SQLeros.BI_RangoEtario ON rangoetario_codigo = pers_rango_etario
+JOIN SQLeros.BI_Venta ON bi_venta_anuncio = bi_anu_codigo
+GROUP BY tipooperacion_descripcion, rangoetario_descripcion
+GO
 SELECT * FROM SQLeros.PrecioPromedioDeInmuebles
 */
 

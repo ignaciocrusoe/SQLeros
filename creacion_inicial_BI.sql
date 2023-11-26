@@ -24,6 +24,11 @@ IF OBJECT_ID('SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler', 'V') IS NOT NUL
 	DROP VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler
 GO
 
+IF OBJECT_ID('SQLeros.BI_PorcentajeIncrementoValorAlquiler', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler
+GO
+
+
 IF OBJECT_ID('SQLeros.BI_Tiempo', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_Tiempo
 GO
@@ -423,7 +428,7 @@ BEGIN
 			EXEC SQLeros.BI_MigrarTiempo @fechaVencimiento, @tiempoVencimiento OUTPUT
 			EXEC SQLeros.BI_MigrarTiempo @fechaPago, @tiempoPago OUTPUT
 			EXEC SQLeros.BI_MigrarTiempo @fechaInicial, @tiempoInicial OUTPUT
-			INSERT INTO BI_PagoAlq (bi_pagoAlq_tiempoVencimiento, bi_pagoAlq_tiempo, bi_pagoAlq_fechaVencimiento, bi_pagoAlq_fecha, bi_pagoAlq_monto, bi_pagoAlq_montoAnterior, bi_pagoAlq_estado)
+			INSERT INTO BI_PagoAlq (bi_pagoAlq_tiempoVencimiento, bi_pagoAlq_tiempo, bi_pagoAlq_fechaVencimiento, bi_pagoAlq_fecha, bi_pagoAlq_monto, bi_pagoAlq_montoAnterior, bi_pagoAlq_estado, bi_pagoAlq_tiempoInicial)
 			VALUES (@tiempoVencimiento, @tiempoPago, @fechaVencimiento, @fechaPago, @monto, SQLeros.BI_MontoPagoAnterior(@codPago), @estado, @tiempoInicial)
 			FETCH NEXT FROM c_pagoAlq INTO @fechaVencimiento, @fechaPago, @monto, @codPago, @estado, @fechaInicial
 		END

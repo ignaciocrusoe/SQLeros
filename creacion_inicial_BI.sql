@@ -48,6 +48,10 @@ IF OBJECT_ID('SQLeros.BI_Persona', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_Persona
 GO
 
+IF OBJECT_ID('SQLeros.BI_PagoAlq', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_PagoAlq
+GO
+
 IF OBJECT_ID('SQLeros.BI_f_rango_superficie', 'FN') IS NOT NULL
 	DROP FUNCTION SQLeros.BI_f_rango_superficie
 GO
@@ -60,6 +64,7 @@ IF OBJECT_ID('SQLeros.BI_f_rango_etario', 'FN') IS NOT NULL
 	DROP FUNCTION SQLeros.BI_f_rango_etario
 GO
 
+-- Tablas dimensionales
 CREATE TABLE SQLeros.BI_Tiempo(
 	bi_tiempo_codigo INT IDENTITY PRIMARY KEY,
 	bi_tiempo_year INT,
@@ -80,6 +85,7 @@ CREATE TABLE SQLeros.BI_RangoM2(
 )
 GO
 
+-- Fact table
 CREATE TABLE SQLeros.BI_Venta(
 	 bi_venta_codigo INT PRIMARY KEY,
 	 bi_venta_comprador INT,
@@ -92,7 +98,6 @@ CREATE TABLE SQLeros.BI_Venta(
 )
 GO
 
---Fact table
 CREATE TABLE SQLeros.BI_Anuncio(
 	bi_anu_codigo INT PRIMARY KEY,
 	bi_anu_agente INT,
@@ -138,6 +143,13 @@ CREATE TABLE SQLeros.BI_Persona(
 	pers_mail VARCHAR(50),
 	pers_fecha_nac VARCHAR(50),
 	pers_rango_etario INT
+)
+
+CREATE TABLE SQLeros.BI_PagoAlq(
+	pagoAlq_codigo INT PRIMARY KEY,
+	pagoAlq_tiempoVencimiento INT,
+	pagoAlq_tiempo INT,
+	--pagoAlq_esMoroso BIT	-- Es un campo calculado, no se si es correcto utilizarlo
 )
 
 INSERT INTO SQLeros.BI_RangoEtario (rangoetario_descripcion) VALUES ('<25')
@@ -344,6 +356,26 @@ BEGIN
 	DEALLOCATE c_ventas
 END
 GO
+CREATE PROCEDURE SQLeros.BI_MigrarPagoAlq
+AS
+BEGIN
+	DECLARE @fechaVencimiento SMALLDATETIME, @fechaPago SMALLDATETIME, @tiempoVencimiento INT, @tiempoPago INT
+	DECLARE c_pagoAlq CURSOR FOR
+		SELECT pagoalq_vencimiento, pagoalq_fecha
+		FROM PagoAlquiler
+	OPEN c_pagoAlq
+		FETCH NEXT FROM c_pagoAlq INTO @fechaVencimiento, @fechaPago
+		WHILE @@FETCH_STATUS = 0
+		BEGIN
+			EXEC SQLeros.BI_MigrarTiempo @fechaVencimiento, @tiempoVencimiento OUTPUT
+			EXEC SQLeros.BI_MigrarTiempo @fechaPago, @tiempoPago OUTPUT
+			INSERT INTO BI_PagoAlq (pagoAlq_tiempoVencimiento, pagoAlq_tiempo)
+			VALUES (@tiempoVencimiento, @tiempoPago)
+			FETCH NEXT FROM c_pagoAlq INTO @fechaVencimiento, @fechaPago
+		END
+	CLOSE c_pagoAlq DEALLOCATE c_pagoAlq
+END
+GO
 
 /*VISTA 1*/
 CREATE VIEW SQLeros.BI_DuracionPromedioDeAnuncios AS
@@ -397,6 +429,12 @@ JOIN SQLeros.BI_Persona ON pers_codigo = inquilino_persona
 JOIN SQLeros.BI_RangoEtario ON rangoetario_codigo = pers_rango_etario
 JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_anu_tiempo_pub
 GO
+
+/*VISTA 4*/ -- En proceso (agregar fact tables?)
+CREATE VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler AS
+SELECT 
+FROM SQLeros.PagoAlquiler
+		
 
 /*VISTA 6*/ --En proceso
 CREATE VIEW SQLeros.BI_PrecioPromedioDeM2 AS

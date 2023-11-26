@@ -207,7 +207,6 @@ GO
 CREATE TABLE SQLeros.Alquiler(
 	alq_codigo INT IDENTITY PRIMARY KEY,
 	alq_codigo_maestra INT,
-	alq_inquilino INT,
 	alq_anuncio INT,
 	alq_fecha_inicio SMALLDATETIME,
 	alq_fecha_fin SMALLDATETIME,
@@ -888,9 +887,9 @@ CREATE PROCEDURE SQLeros.MigrarInquilinoPorAlquiler
 	AS
 		BEGIN
 			INSERT INTO SQLeros.InquilinoPorAlquiler(inquilinoporalquiler_inquilino, inquilinoporalquiler_alquiler)
-			SELECT DISTINCT inquilino_codigo, alquiler_codigo
+			SELECT DISTINCT inquilino_codigo, alq_codigo
 			FROM gd_esquema.Maestra
-			JOIN Persona ON INQUILINO_DNI = pers_dni
+			JOIN SQLeros.Persona ON INQUILINO_DNI = pers_dni
 			JOIN SQLeros.Inquilino ON inquilino_persona = pers_codigo
 			JOIN SQLeros.Alquiler ON alq_codigo_maestra = ALQUILER_CODIGO
 		END

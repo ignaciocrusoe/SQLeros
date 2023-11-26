@@ -52,6 +52,10 @@ IF OBJECT_ID('SQLeros.BI_PagoAlq', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_PagoAlq
 GO
 
+IF OBJECT_ID('SQLeros.BI_Alquiler', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_Alquiler
+GO
+
 IF OBJECT_ID('SQLeros.BI_f_rango_superficie', 'FN') IS NOT NULL
 	DROP FUNCTION SQLeros.BI_f_rango_superficie
 GO
@@ -152,6 +156,11 @@ CREATE TABLE SQLeros.BI_PagoAlq(
 	--pagoAlq_esMoroso BIT	-- Es un campo calculado, no se si es correcto utilizarlo
 	bi_pagoAlq_fechaVencimiento INT,	-- Utilizar estas fechas o hay que usar solo el tiempo? (redundante?)
 	bi_pagoAlq_fecha INT,
+)
+
+CREATE TABLE SQLeros.BI_Alquiler (
+	bi_alquiler_codigo INT PRIMARY KEY,
+	bi_alquiler_tiempoFin INT
 )
 
 INSERT INTO SQLeros.BI_RangoEtario (rangoetario_descripcion) VALUES ('<25')
@@ -432,7 +441,7 @@ JOIN SQLeros.BI_RangoEtario ON rangoetario_codigo = pers_rango_etario
 JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_anu_tiempo_pub
 GO
 
-/*VISTA 4*/ -- En proceso (agregar fact tables?)
+/*VISTA 4*/
 CREATE VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler AS
 SELECT bi_tiempo_month, bi_tiempo_year,
 	(SELECT COUNT(*)
@@ -442,6 +451,12 @@ SELECT bi_tiempo_month, bi_tiempo_year,
 FROM SQLeros.BI_PagoAlq
 	JOIN SQLeros.BI_Tiempo AS T ON bi_pagoAlq_tiempoVencimiento = bi_tiempo_codigo
 GROUP BY bi_tiempo_month, bi_tiempo_year
+GO
+
+/*VISTA 5*/
+-- ¿"Alquiler activo" == fechaFin > fecha hoy?
+CREATE VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler AS SELECT * from BI_alquiler
+	
 GO
 
 /*VISTA 6*/ --En proceso

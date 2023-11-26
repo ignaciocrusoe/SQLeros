@@ -491,6 +491,13 @@ JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_venta_tiempo
 GROUP BY bi_inm_tipo, localidad_codigo, localidad_descripcion, tipoinmueble_descripcion
 GO
 
+/*VISTA 7*/
+CREATE VIEW SQLeros.BI_ValorPromedioDeLaComision AS
+SELECT tipooperacion_descripcion, sucur_nombre, AVG(ISNULL(bi_anu_comision,0)) AS [Promedio de la comisión] FROM SQLeros.BI_Anuncio
+JOIN SQLeros.TipoOperacion ON tipooperacion_codigo = bi_anu_tipo_op
+JOIN SQLeros.Sucursal ON sucur_codigo = bi_anu_sucursal
+GROUP BY tipooperacion_codigo, tipooperacion_descripcion, sucur_codigo, sucur_nombre
+GO
 /*
 CREATE VIEW SQLeros.PorcentajeDeOperacionesConcretadas AS
 SELECT tipooperacion_descripcion,

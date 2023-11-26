@@ -165,6 +165,7 @@ GO
 
 CREATE TABLE SQLeros.Sucursal(
 	sucur_codigo INT IDENTITY PRIMARY KEY,
+	sucur_codigo_maestra INT,
 	sucur_nombre VARCHAR(50),
 	sucur_ubicacion INT,
 	sucur_sucur_telefono VARCHAR(20),
@@ -707,8 +708,8 @@ GO
 CREATE PROCEDURE SQLeros.MigrarSucursal
 	AS
 		BEGIN
-			INSERT INTO SQLeros.Sucursal (sucur_nombre, sucur_direccion, sucur_sucur_telefono, sucur_ubicacion)
-			SELECT DISTINCT SUCURSAL_NOMBRE, SUCURSAL_DIRECCION, SUCURSAL_TELEFONO, ubicacion_codigo FROM gd_esquema.Maestra
+			INSERT INTO SQLeros.Sucursal (sucur_codigo_maestra, sucur_nombre, sucur_direccion, sucur_sucur_telefono, sucur_ubicacion)
+			SELECT DISTINCT SUCURSAL_CODIGO, SUCURSAL_NOMBRE, SUCURSAL_DIRECCION, SUCURSAL_TELEFONO, ubicacion_codigo FROM gd_esquema.Maestra
 			LEFT JOIN SQLeros.Ubicacion ON ubicacion_codigo = (
 				SELECT ubicacion_codigo
 				FROM SQLeros.Ubicacion A
@@ -717,7 +718,7 @@ CREATE PROCEDURE SQLeros.MigrarSucursal
 				WHERE SUCURSAL_LOCALIDAD = localidad_descripcion
 				AND SUCURSAL_PROVINCIA = provincia_descripcion
 				)
-			GROUP BY SUCURSAL_NOMBRE, SUCURSAL_DIRECCION, SUCURSAL_TELEFONO, ubicacion_codigo
+			GROUP BY SUCURSAL_NOMBRE, SUCURSAL_DIRECCION, SUCURSAL_TELEFONO, ubicacion_codigo, SUCURSAL_CODIGO
 		END
 GO
 
@@ -730,7 +731,7 @@ CREATE PROCEDURE SQLeros.MigrarAgente
 			INSERT INTO SQLeros.Agente (agen_persona, agen_sucursal)
 			SELECT distinct pers_codigo, sucur_codigo FROM SQLeros.Persona
 			left join gd_esquema.Maestra on AGENTE_DNI = pers_dni
-			join SQLeros.sucursal on SUCURSAL_NOMBRE = SQLeros.sucursal.sucur_nombre
+			join SQLeros.sucursal on SUCURSAL_CODIGO = sucur_codigo_maestra
 			WHERE pers_dni IN (SELECT AGENTE_DNI FROM gd_esquema.Maestra)
 		END
 GO
@@ -778,17 +779,17 @@ CREATE PROCEDURE SQLeros.MigrarAnuncio
 	AS
 		BEGIN
 			INSERT INTO SQLeros.Anuncio (anu_codigo_maestra, anu_agente, anu_inmueble, anu_sucursal, anu_fecha_pub, anu_precio, anu_costo, anu_fecha_fin, anu_tipo_op, anu_moneda, anu_estado, anu_tipo_periodo)
-			SELECT ANUNCIO_CODIGO, agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
+			SELECT ANUNCIO_CODIGO, agen_codigo, inm_codigo, sucur_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
 			FROM gd_esquema.Maestra
 			JOIN SQLeros.Persona ON pers_dni = AGENTE_DNI
 			JOIN SQLeros.Agente ON agen_persona = pers_codigo
 			JOIN SQLeros.Inmueble ON inm_codigo_maestra = INMUEBLE_CODIGO
-			JOIN SQLeros.Sucursal ON sucur_nombre = SUCURSAL_NOMBRE
+			JOIN SQLeros.Sucursal ON sucur_codigo_maestra = SUCURSAL_CODIGO
 			JOIN SQLeros.TipoOperacion ON tipooperacion_descripcion = ANUNCIO_TIPO_OPERACION
 			JOIN SQLeros.EstadoAnuncio ON estadoanuncio_descripcion = ANUNCIO_ESTADO
 			JOIN SQLeros.TipoPeriodo ON tipoperiodo_descripcion = ANUNCIO_TIPO_PERIODO
 			JOIN SQLeros.Moneda ON moneda_nombre = ANUNCIO_MONEDA
-			GROUP BY ANUNCIO_CODIGO, agen_codigo, inm_codigo, sucursal_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
+			GROUP BY ANUNCIO_CODIGO, agen_codigo, inm_codigo, sucur_codigo, ANUNCIO_FECHA_PUBLICACION, ANUNCIO_PRECIO_PUBLICADO, ANUNCIO_COSTO_ANUNCIO, ANUNCIO_FECHA_FINALIZACION, tipooperacion_codigo, moneda_codigo, estadoanuncio_codigo, tipoperiodo_codigo
 		END
 GO
 
@@ -828,7 +829,7 @@ CREATE PROCEDURE SQLeros.MigrarVenta
 	AS
 		BEGIN
 			INSERT INTO SQLeros.Venta (venta_codigo_maestra, venta_anuncio, venta_comision, venta_comprador, venta_fecha, venta_moneda, venta_precio)
-			SELECT DISTINCT VENTA_CODIGO, anuncio_codigo, VENTA_COMISION, comprador_codigo, VENTA_FECHA, moneda_codigo, VENTA_PRECIO_VENTA
+			SELECT DISTINCT VENTA_CODIGO, anu_codigo, VENTA_COMISION, comprador_codigo, VENTA_FECHA, moneda_codigo, VENTA_PRECIO_VENTA
 			FROM gd_esquema.Maestra
 			JOIN SQLeros.Anuncio ON anu_codigo_maestra = ANUNCIO_CODIGO
 			JOIN SQLeros.Persona ON pers_dni = COMPRADOR_DNI

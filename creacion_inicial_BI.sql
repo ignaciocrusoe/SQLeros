@@ -56,10 +56,6 @@ IF OBJECT_ID('SQLeros.BI_PagoAlq', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_PagoAlq
 GO
 
-IF OBJECT_ID('SQLeros.BI_Alquiler', 'U') IS NOT NULL
-	DROP TABLE SQLeros.BI_Alquiler
-GO
-
 IF OBJECT_ID('SQLeros.BI_f_rango_superficie', 'FN') IS NOT NULL
 	DROP FUNCTION SQLeros.BI_f_rango_superficie
 GO
@@ -70,6 +66,10 @@ GO
 
 IF OBJECT_ID('SQLeros.BI_f_rango_etario', 'FN') IS NOT NULL
 	DROP FUNCTION SQLeros.BI_f_rango_etario
+GO
+
+IF OBJECT_ID('SQLeros.BI_MontoPagoAnterior', 'FN') IS NOT NULL
+	DROP FUNCTION SQLeros.BI_MontoPagoAnterior
 GO
 
 -- Tablas dimensionales
@@ -153,20 +153,22 @@ CREATE TABLE SQLeros.BI_Persona(
 	pers_fecha_nac VARCHAR(50),
 	pers_rango_etario INT
 )
+GO
 
 CREATE TABLE SQLeros.BI_PagoAlq(
 	bi_pagoAlq_codigo INT PRIMARY KEY,
 	bi_pagoAlq_tiempoVencimiento INT,
 	bi_pagoAlq_tiempo INT,
 	--pagoAlq_esMoroso BIT	-- Es un campo calculado, no se si es correcto utilizarlo
-	bi_pagoAlq_fechaVencimiento INT,	-- Utilizar estas fechas o hay que usar solo el tiempo? (redundante?)
-	bi_pagoAlq_fecha INT,
-)
+	bi_pagoAlq_fechaVencimiento SMALLDATETIME,	-- Utilizar estas fechas o hay que usar solo el tiempo? (redundante?)
+	bi_pagoAlq_fecha SMALLDATETIME,
 
-CREATE TABLE SQLeros.BI_Alquiler (
-	bi_alquiler_codigo INT PRIMARY KEY,
-	bi_alquiler_tiempoFin INT
+	bi_pagoAlq_estado VARCHAR(25),
+	bi_pagoAlq_monto DECIMAL(12, 2),
+	bi_pagoAlq_montoAnterior DECIMAL(12, 2),
+	bi_pagoAlq_tiempoInicial INT
 )
+GO
 
 INSERT INTO SQLeros.BI_RangoEtario (rangoetario_descripcion) VALUES ('<25')
 INSERT INTO SQLeros.BI_RangoEtario (rangoetario_descripcion) VALUES ('25-35')
@@ -383,28 +385,52 @@ BEGIN
 	DEALLOCATE c_ventas
 END
 GO
-/*
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarPagoAlq')
+	DROP PROCEDURE SQLeros.BI_MigrarPagoAlq
+GO
+
+CREATE FUNCTION SQLeros.BI_MontoPagoAnterior(@pagoAlquiler INT)
+RETURNS DECIMAL (12, 2)
+AS
+BEGIN
+	DECLARE @monto DECIMAL(12, 2)
+	SELECT @monto = P2.pagoalq_importe
+	FROM SQLeros.PagoAlquiler AS P1
+		JOIN SQLeros.DetalleAlquiler AS D1 ON pagoalq_alquiler = detallealq_codigo
+		JOIN SQLeros.DetalleAlquiler AS D2 ON D1.detallealq_alquiler = D2.detallealq_alquiler
+		JOIN SQLeros.PagoAlquiler AS P2 ON P2.pagoalq_alquiler = D2.detallealq_codigo 
+	WHERE P1.pagoalq_codigo = @pagoAlquiler AND MONTH(P1.pagoalq_fecha) - 1 = MONTH(P2.pagoalq_fecha)
+	RETURN ISNULL(@monto, 0)
+END
+GO
+
+
 CREATE PROCEDURE SQLeros.BI_MigrarPagoAlq
 AS
 BEGIN
-	DECLARE @fechaVencimiento SMALLDATETIME, @fechaPago SMALLDATETIME, @tiempoVencimiento INT, @tiempoPago INT
+	DECLARE @fechaVencimiento SMALLDATETIME, @fechaPago SMALLDATETIME, @tiempoVencimiento INT, @tiempoPago INT, @monto DECIMAL(12, 2), @codPago INT, @estado CHAR(25), @fechaInicial SMALLDATETIME, @tiempoInicial INT
 	DECLARE c_pagoAlq CURSOR FOR
-		SELECT pagoalq_vencimiento, pagoalq_fecha
+		SELECT pagoalq_vencimiento, pagoalq_fecha, pagoalq_importe, pagoalq_codigo, estadoalquiler_descripcion, pagoalq_fecha_inicio
 		FROM PagoAlquiler
+			JOIN DetalleAlquiler ON pagoalq_alquiler = detallealq_alquiler
+			JOIN Alquiler ON detallealq_alquiler = Alquiler.alq_codigo
+			JOIN EstadoAlquiler ON alq_estado = estadoalquiler_codigo
 	OPEN c_pagoAlq
-		FETCH NEXT FROM c_pagoAlq INTO @fechaVencimiento, @fechaPago
+		FETCH NEXT FROM c_pagoAlq INTO @fechaVencimiento, @fechaPago, @monto, @codPago, @estado, @fechaInicial
 		WHILE @@FETCH_STATUS = 0
 		BEGIN
 			EXEC SQLeros.BI_MigrarTiempo @fechaVencimiento, @tiempoVencimiento OUTPUT
 			EXEC SQLeros.BI_MigrarTiempo @fechaPago, @tiempoPago OUTPUT
-			INSERT INTO BI_PagoAlq (bi_pagoAlq_tiempoVencimiento, bi_pagoAlq_tiempo, bi_pagoAlq_fechaVencimiento, bi_pagoAlq_tiempo)
-			VALUES (@tiempoVencimiento, @tiempoPago, @fechaVencimiento, @fechaPago)
-			FETCH NEXT FROM c_pagoAlq INTO @fechaVencimiento, @fechaPago
+			EXEC SQLeros.BI_MigrarTiempo @fechaInicial, @tiempoInicial OUTPUT
+			INSERT INTO BI_PagoAlq (bi_pagoAlq_tiempoVencimiento, bi_pagoAlq_tiempo, bi_pagoAlq_fechaVencimiento, bi_pagoAlq_fecha, bi_pagoAlq_monto, bi_pagoAlq_montoAnterior, bi_pagoAlq_estado)
+			VALUES (@tiempoVencimiento, @tiempoPago, @fechaVencimiento, @fechaPago, @monto, SQLeros.BI_MontoPagoAnterior(@codPago), @estado, @tiempoInicial)
+			FETCH NEXT FROM c_pagoAlq INTO @fechaVencimiento, @fechaPago, @monto, @codPago, @estado, @fechaInicial
 		END
 	CLOSE c_pagoAlq DEALLOCATE c_pagoAlq
 END
 GO
-*/
+
 /*VISTA 1*/
 CREATE VIEW SQLeros.BI_DuracionPromedioDeAnuncios AS
 SELECT tipooperacion_descripcion AS [Tipo de operación],
@@ -473,10 +499,15 @@ GROUP BY bi_tiempo_month, bi_tiempo_year
 GO
 
 /*VISTA 5*/
--- ¿"Alquiler activo" == fechaFin > fecha hoy?
---CREATE VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler AS SELECT * from BI_alquiler
-	
---GO
+-- Alquiler activo --> Estado = Activo
+CREATE VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler
+AS
+SELECT bi_tiempo_year, bi_tiempo_month, AVG((bi_pagoAlq_monto/bi_pagoAlq_montoAnterior)*100) AS [Porcentaje Aumento]
+FROM SQLeros.BI_PagoAlq
+	JOIN SQLeros.BI_Tiempo ON bi_pagoAlq_tiempoInicial = bi_tiempo_codigo
+WHERE bi_pagoAlq_estado = 'Activo'
+GROUP BY bi_tiempo_year, bi_tiempo_month
+GO
 
 /*VISTA 6*/ --En proceso
 CREATE VIEW SQLeros.BI_PrecioPromedioDeM2 AS
@@ -523,6 +554,7 @@ BEGIN TRANSACTION
 		EXEC SQLeros.BI_MigrarInmueble
 		EXEC SQLeros.BI_MigrarVentas
 		EXEC SQLeros.BI_MigrarPersonas
+		EXEC SQLeros.BI_MigrarPagoAlq	
 		COMMIT TRANSACTION;
 	END TRY
 	BEGIN CATCH

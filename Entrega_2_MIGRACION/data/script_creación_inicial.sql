@@ -111,7 +111,7 @@ CREATE TABLE SQLeros.Persona(
 	pers_fecha_reg SMALLDATETIME,
 	pers_telefono VARCHAR(50),
 	pers_mail VARCHAR(50),
-	pers_fecha_nac VARCHAR(50),
+	pers_fecha_nac VARCHAR(50)
 );
 END
 

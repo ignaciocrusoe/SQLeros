@@ -12,6 +12,10 @@ IF OBJECT_ID('SQLeros.BI_PorcentajeDeOperacionesConcretadas', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_PorcentajeDeOperacionesConcretadas
 GO
 
+IF OBJECT_ID('SQLeros.BI_BarriosMasElegidos', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_BarriosMasElegidos
+GO
+
 IF OBJECT_ID('SQLeros.BI_PrecioPromedioDeM2', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_PrecioPromedioDeM2
 GO
@@ -40,12 +44,20 @@ IF OBJECT_ID('SQLeros.BI_Anuncio', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_Anuncio
 GO
 
-IF OBJECT_ID('SQLeros.f_rango_superficie', 'FN') IS NOT NULL
-	DROP FUNCTION SQLeros.f_rango_superficie
+IF OBJECT_ID('SQLeros.BI_Persona', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_Persona
+GO
+
+IF OBJECT_ID('SQLeros.BI_f_rango_superficie', 'FN') IS NOT NULL
+	DROP FUNCTION SQLeros.BI_f_rango_superficie
 GO
 
 IF OBJECT_ID('SQLeros.BI_ObtenerCuatrimestre', 'FN') IS NOT NULL
 	DROP FUNCTION SQLeros.BI_ObtenerCuatrimestre
+GO
+
+IF OBJECT_ID('SQLeros.BI_f_rango_etario', 'FN') IS NOT NULL
+	DROP FUNCTION SQLeros.BI_f_rango_etario
 GO
 
 CREATE TABLE SQLeros.BI_Tiempo(
@@ -117,6 +129,18 @@ CREATE TABLE SQLeros.BI_Inmueble(
 )
 GO
 
+CREATE TABLE SQLeros.BI_Persona(
+	pers_codigo INT PRIMARY KEY,
+	pers_nombre VARCHAR(50),
+	pers_apellido VARCHAR(50),
+	pers_dni CHAR(8),
+	pers_fecha_reg SMALLDATETIME,
+	pers_telefono VARCHAR(50),
+	pers_mail VARCHAR(50),
+	pers_fecha_nac VARCHAR(50),
+	pers_rango_etario INT
+)
+
 INSERT INTO SQLeros.BI_RangoEtario (rangoetario_descripcion) VALUES ('<25')
 INSERT INTO SQLeros.BI_RangoEtario (rangoetario_descripcion) VALUES ('25-35')
 INSERT INTO SQLeros.BI_RangoEtario (rangoetario_descripcion) VALUES ('35-50')
@@ -130,7 +154,7 @@ INSERT INTO SQLeros.BI_RangoM2 (rangom2_descripcion) VALUES ('75-100')
 INSERT INTO SQLeros.BI_RangoM2 (rangom2_descripcion) VALUES ('>100')
 GO
 
-CREATE FUNCTION SQLeros.f_rango_superficie (@superficie VARCHAR(50))
+CREATE FUNCTION SQLeros.BI_f_rango_superficie (@superficie VARCHAR(50))
 RETURNS INT
 AS
 BEGIN
@@ -154,6 +178,33 @@ BEGIN
 	ELSE IF CAST(@superficie AS DECIMAL(12,2)) >= 100
 	BEGIN
 		SELECT @rango = rangom2_codigo FROM SQLeros.BI_RangoM2 WHERE rangom2_descripcion = '>100'
+	END
+	RETURN @rango
+END
+GO
+
+CREATE FUNCTION SQLeros.BI_f_rango_etario (@fecha_nacimiento SMALLDATETIME)
+RETURNS INT
+AS
+BEGIN
+	DECLARE @rango INT
+	DECLARE @edad INT
+	SET @edad = DATEDIFF(DAY, @fecha_nacimiento, GETDATE())
+	IF CAST(@edad AS DECIMAL(12,2)) < 25
+	BEGIN
+		SELECT @rango = rangoetario_codigo FROM SQLeros.BI_RangoEtario WHERE rangoetario_descripcion = '<25'
+	END
+	ELSE IF CAST(@edad AS DECIMAL(12,2)) >= 25 AND CAST(@edad AS DECIMAL(12,2)) <25
+	BEGIN
+		SELECT @rango = rangoetario_codigo FROM SQLeros.BI_RangoEtario WHERE rangoetario_descripcion = '25-35'
+	END
+	ELSE IF CAST(@edad AS DECIMAL(12,2)) >= 35 AND CAST(@edad AS DECIMAL(12,2)) < 50
+	BEGIN
+		SELECT @rango = rangoetario_codigo FROM SQLeros.BI_RangoEtario WHERE rangoetario_descripcion = '35-50'
+	END
+	ELSE IF CAST(@edad AS DECIMAL(12,2)) >= 50
+	BEGIN
+		SELECT @rango = rangoetario_codigo FROM SQLeros.BI_RangoEtario WHERE rangoetario_descripcion = '>50'
 	END
 	RETURN @rango
 END
@@ -217,8 +268,19 @@ AS
 BEGIN
 	DECLARE @superficie INT
 	INSERT INTO SQLeros.BI_Inmueble (bi_inm_ambientes, bi_inm_antiguedad, bi_inm_codigo, bi_inm_codigo_maestra, bi_inm_descripcion, bi_inm_direccion, bi_inm_disposicion, bi_inm_estado, bi_inm_expensas, bi_inm_nombre, bi_inm_orientacion, bi_inm_rango_superficie, bi_inm_superficie, bi_inm_tipo, bi_inm_ubicacion) 
-	SELECT DISTINCT inm_ambientes, inm_antiguedad, inm_codigo, inm_codigo_maestra, inm_descripcion, inm_direccion, inm_disposicion, inm_estado, inm_expensas, inm_nombre, inm_orientacion, SQLeros.f_rango_superficie(inm_superficie), CAST(inm_superficie AS DECIMAL(12,2)), inm_tipo, inm_ubicacion FROM SQLeros.Inmueble
+	SELECT DISTINCT inm_ambientes, inm_antiguedad, inm_codigo, inm_codigo_maestra, inm_descripcion, inm_direccion, inm_disposicion, inm_estado, inm_expensas, inm_nombre, inm_orientacion, SQLeros.f_rango_etario(inm_superficie), CAST(inm_superficie AS DECIMAL(12,2)), inm_tipo, inm_ubicacion FROM SQLeros.Inmueble
 
+END
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarPersonas')
+	DROP PROCEDURE SQLeros.BI_MigrarPersonas
+GO
+CREATE PROCEDURE SQLeros.BI_MigrarPersonas
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_Persona (pers_apellido, pers_codigo, pers_dni, pers_fecha_nac, pers_fecha_reg, pers_mail, pers_nombre, pers_rango_etario, pers_telefono)
+	SELECT pers_apellido, pers_codigo, pers_dni, pers_fecha_nac, pers_fecha_reg, pers_mail, pers_nombre, SQLeros.BI_f_rango_etario(pers_fecha_nac), pers_telefono FROM SQLeros.Persona
 END
 GO
 
@@ -280,6 +342,13 @@ JOIN SQLeros.Moneda ON moneda_codigo = anu_moneda
 GROUP BY tipooperacion_descripcion, tipoinmueble_descripcion, inm_superficie, moneda_nombre
 GO
 
+/*VISTA 3*/
+CREATE VIEW SQLeros.BI_BarriosMasElegidos AS
+SELECT * FROM SQLeros.Alquiler
+JOIN SQLeros.Inquilino ON inquilino_codigo = alq_inquilino
+JOIN SQLeros.BI_Persona ON pers_codigo = inquilino_persona
+GO
+
 /*VISTA 6*/ --En proceso
 CREATE VIEW SQLeros.BI_PrecioPromedioDeM2 AS
 SELECT AVG(venta_precio / bi_inm_superficie) AS [Promedio] FROM SQLeros.BI_Anuncio
@@ -310,6 +379,7 @@ BEGIN TRANSACTION
 		EXEC SQLeros.BI_MigrarAnuncio
 		EXEC SQLeros.BI_MigrarInmueble
 		EXEC SQLeros.BI_MigrarVentas
+		EXEC SQLeros.BI_MigrarPersonas
 		COMMIT TRANSACTION;
 	END TRY
 	BEGIN CATCH

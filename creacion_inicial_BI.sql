@@ -146,10 +146,12 @@ CREATE TABLE SQLeros.BI_Persona(
 )
 
 CREATE TABLE SQLeros.BI_PagoAlq(
-	pagoAlq_codigo INT PRIMARY KEY,
-	pagoAlq_tiempoVencimiento INT,
-	pagoAlq_tiempo INT,
+	bi_pagoAlq_codigo INT PRIMARY KEY,
+	bi_pagoAlq_tiempoVencimiento INT,
+	bi_pagoAlq_tiempo INT,
 	--pagoAlq_esMoroso BIT	-- Es un campo calculado, no se si es correcto utilizarlo
+	bi_pagoAlq_fechaVencimiento INT,	-- Utilizar estas fechas o hay que usar solo el tiempo? (redundante?)
+	bi_pagoAlq_fecha INT,
 )
 
 INSERT INTO SQLeros.BI_RangoEtario (rangoetario_descripcion) VALUES ('<25')
@@ -369,8 +371,8 @@ BEGIN
 		BEGIN
 			EXEC SQLeros.BI_MigrarTiempo @fechaVencimiento, @tiempoVencimiento OUTPUT
 			EXEC SQLeros.BI_MigrarTiempo @fechaPago, @tiempoPago OUTPUT
-			INSERT INTO BI_PagoAlq (pagoAlq_tiempoVencimiento, pagoAlq_tiempo)
-			VALUES (@tiempoVencimiento, @tiempoPago)
+			INSERT INTO BI_PagoAlq (bi_pagoAlq_tiempoVencimiento, bi_pagoAlq_tiempo, bi_pagoAlq_fechaVencimiento, bi_pagoAlq_tiempo)
+			VALUES (@tiempoVencimiento, @tiempoPago, @fechaVencimiento, @fechaPago)
 			FETCH NEXT FROM c_pagoAlq INTO @fechaVencimiento, @fechaPago
 		END
 	CLOSE c_pagoAlq DEALLOCATE c_pagoAlq
@@ -432,9 +434,15 @@ GO
 
 /*VISTA 4*/ -- En proceso (agregar fact tables?)
 CREATE VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler AS
-SELECT 
-FROM SQLeros.PagoAlquiler
-		
+SELECT bi_tiempo_month, bi_tiempo_year,
+	(SELECT COUNT(*)
+	FROM SQLeros.BI_PagoAlq
+		JOIN SQLeros.BI_Tiempo ON bi_pagoAlq_tiempoVencimiento = bi_tiempo_codigo
+	WHERE bi_pagoAlq_tiempoVencimiento < bi_pagoAlq_tiempo AND T.bi_tiempo_month = bi_tiempo_month AND T.bi_tiempo_year = bi_tiempo_year) / COUNT(*) AS [Porcentaje]
+FROM SQLeros.BI_PagoAlq
+	JOIN SQLeros.BI_Tiempo AS T ON bi_pagoAlq_tiempoVencimiento = bi_tiempo_codigo
+GROUP BY bi_tiempo_month, bi_tiempo_year
+GO
 
 /*VISTA 6*/ --En proceso
 CREATE VIEW SQLeros.BI_PrecioPromedioDeM2 AS

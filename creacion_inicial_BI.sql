@@ -8,8 +8,8 @@ IF OBJECT_ID('SQLeros.BI_PrecioPromedioDeInmuebles', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_PrecioPromedioDeInmuebles
 GO
 
-IF OBJECT_ID('SQLeros.BI_PorcentajeDeOperacionesConcretadas', 'V') IS NOT NULL
-	DROP VIEW SQLeros.BI_PorcentajeDeOperacionesConcretadas
+IF OBJECT_ID('SQLeros.PorcentajeDeOperacionesConcretadas', 'V') IS NOT NULL
+	DROP VIEW SQLeros.PorcentajeDeOperacionesConcretadas
 GO
 
 IF OBJECT_ID('SQLeros.BI_BarriosMasElegidos', 'V') IS NOT NULL
@@ -76,8 +76,8 @@ IF OBJECT_ID('SQLeros.BI_Persona', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_Persona
 GO
 
-IF OBJECT_ID('SQLeros.BI_PagoAlq', 'U') IS NOT NULL
-	DROP TABLE SQLeros.BI_PagoAlq
+IF OBJECT_ID('SQLeros.BI_PagoAlquiler', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_PagoAlquiler
 GO
 
 IF OBJECT_ID('SQLeros.BI_InquilinoPorAlquiler', 'U') IS NOT NULL
@@ -182,7 +182,25 @@ CREATE TABLE SQLeros.BI_Persona(
 	pers_rango_etario INT
 )
 GO
-
+/*
+CREATE TABLE SQLeros.BI_PagoAlquiler(
+	pagoalq_codigo INT PRIMARY KEY,
+	pagoalq_tiempo INT,
+	pagoalq_nro_periodo INT,
+	pagoalq_alquiler INT,
+	pagoalq_descripcion_periodo VARCHAR(100),
+	pagoalq_tiempo_inicio INT,
+	pagoalq_tiempo_fin INT,
+	pagoalq_importe DECIMAL(12,2),
+	pagoalq_medio INT,
+	pagoalq_tiempo_vencimiento INT,
+	estadoalquiler_descripcion VARCHAR (50),
+)
+GO
+*/	
+IF OBJECT_ID('SQLeros.BI_PagoAlq', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_PagoAlq
+GO
 CREATE TABLE SQLeros.BI_PagoAlq(
 	bi_pagoAlq_codigo INT PRIMARY KEY,
 	bi_pagoAlq_tiempoVencimiento INT,
@@ -399,7 +417,6 @@ GO
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarVentas')
 	DROP PROCEDURE SQLeros.BI_MigrarVentas
 GO
-
 CREATE PROCEDURE SQLeros.BI_MigrarVentas
 AS
 BEGIN
@@ -430,10 +447,6 @@ BEGIN
 END
 GO
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarPagoAlq')
-	DROP PROCEDURE SQLeros.BI_MigrarPagoAlq
-GO
-
 CREATE FUNCTION SQLeros.BI_MontoPagoAnterior(@pagoAlquiler INT)
 RETURNS DECIMAL (12, 2)
 AS
@@ -447,7 +460,9 @@ BEGIN
 END
 GO
 
-
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarPagoAlq')
+	DROP PROCEDURE SQLeros.BI_MigrarPagoAlq
+GO
 CREATE PROCEDURE SQLeros.BI_MigrarPagoAlq
 AS
 BEGIN
@@ -455,8 +470,8 @@ BEGIN
 	DECLARE c_pagoAlq CURSOR FOR
 		SELECT pagoalq_vencimiento, pagoalq_fecha, pagoalq_importe, pagoalq_codigo, estadoalquiler_descripcion, pagoalq_fecha_inicio
 		FROM SQLeros.PagoAlquiler
-			JOIN SQLeros.Alquiler ON pagoalq_alquiler = alq_codigo
-			JOIN SQLeros.EstadoAlquiler ON alq_estado = estadoalquiler_codigo
+		JOIN SQLeros.Alquiler ON alq_codigo = pagoalq_codigo
+		JOIN SQLeros.EstadoAlquiler ON estadoalquiler_codigo = alq_estado
 	OPEN c_pagoAlq
 		FETCH NEXT FROM c_pagoAlq INTO @fechaVencimiento, @fechaPago, @monto, @codPago, @estado, @fechaInicial
 		WHILE @@FETCH_STATUS = 0
@@ -464,7 +479,7 @@ BEGIN
 			EXEC SQLeros.BI_MigrarTiempo @fechaVencimiento, @tiempoVencimiento OUTPUT
 			EXEC SQLeros.BI_MigrarTiempo @fechaPago, @tiempoPago OUTPUT
 			EXEC SQLeros.BI_MigrarTiempo @fechaInicial, @tiempoInicial OUTPUT
-			INSERT INTO SQLeros.BI_PagoAlq (bi_pagoAlq_tiempoVencimiento, bi_pagoAlq_tiempo, bi_pagoAlq_fechaVencimiento, bi_pagoAlq_fecha, bi_pagoAlq_monto, bi_pagoAlq_montoAnterior, bi_pagoAlq_estado, bi_pagoAlq_tiempoInicial)
+			INSERT INTO SQLeros.BI_PagoAlquiler (pagoalq_tiempo_vencimiento, pagoalq_tiempo, pagoalq_importe, pagoalq_codigo, estadoalquiler_descripcion, pagoalq_tiempo_inicio)
 			VALUES (@tiempoVencimiento, @tiempoPago, @fechaVencimiento, @fechaPago, @monto, SQLeros.BI_MontoPagoAnterior(@codPago), @estado, @tiempoInicial)
 			FETCH NEXT FROM c_pagoAlq INTO @fechaVencimiento, @fechaPago, @monto, @codPago, @estado, @fechaInicial
 		END
@@ -472,6 +487,7 @@ BEGIN
 END
 GO
 
+/*
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarTiempoAlq')
 	DROP PROCEDURE SQLeros.BI_MigrarTiempoAlq
 GO
@@ -488,11 +504,11 @@ BEGIN
 END
 GO
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarAlquileres')
-	DROP PROCEDURE SQLeros.BI_MigrarAlquileres
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarPagoAlquileres')
+	DROP PROCEDURE SQLeros.BI_MigrarPagoAlquileres
 GO
 
-CREATE PROCEDURE SQLeros.BI_MigrarAlquileres
+CREATE PROCEDURE SQLeros.BI_MigrarPagoAlquileres
 AS
 BEGIN
 	INSERT INTO SQLeros.BI_PagoAlq (bi_pagoAlq_codigo, bi_pagoAlq_tiempo, bi_pagoAlq_tiempoInicial, bi_pagoAlq_tiempoVencimiento, bi_pagoAlq_monto, bi_pagoAlq_estado)
@@ -506,6 +522,32 @@ BEGIN
 			ON (DAY(pagoalq_vencimiento) = T3.bi_tiempo_day AND MONTH(pagoalq_vencimiento) = T3.bi_tiempo_month AND YEAR(pagoalq_vencimiento) = T3.bi_tiempo_year)
 		JOIN SQLeros.Alquiler ON pagoalq_alquiler = alq_codigo
 		JOIN SQLeros.EstadoAlquiler ON alq_estado = estadoalquiler_codigo
+END
+GO
+*/
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarPagoAlquiler')
+	DROP PROCEDURE SQLeros.BI_MigrarPagoAlquiler
+GO
+CREATE PROCEDURE SQLeros.BI_MigrarPagoAlquiler
+AS
+BEGIN
+	DECLARE @pagoalq_alquiler INT, @pagoalq_codigo INT, @pagoalq_descripcion_periodo VARCHAR(100), @pagoalq_fecha SMALLDATETIME, @pagoalq_fecha_fin SMALLDATETIME, @pagoalq_fecha_inicio SMALLDATETIME, @pagoalq_importe DECIMAL(12,2), @pagoalq_medio INT, @pagoalq_nro_periodo INT, @pagoalq_vencimiento SMALLDATETIME
+	DECLARE @tiempo_ini INT, @tiempo INT, @tiempo_fin INT, @tiempo_vencimiento INT
+	DECLARE c_pagos CURSOR FOR SELECT pagoalq_alquiler, pagoalq_codigo, pagoalq_descripcion_periodo, pagoalq_fecha, pagoalq_fecha_fin, pagoalq_fecha_inicio, pagoalq_importe, pagoalq_medio, pagoalq_nro_periodo, pagoalq_vencimiento FROM SQLeros.PagoAlquiler
+	OPEN c_pagos
+	FETCH NEXT FROM c_pagos INTO @pagoalq_alquiler , @pagoalq_codigo , @pagoalq_descripcion_periodo , @pagoalq_fecha , @pagoalq_fecha_fin , @pagoalq_fecha_inicio , @pagoalq_importe , @pagoalq_medio , @pagoalq_nro_periodo , @pagoalq_vencimiento 
+	WHILE @@FETCH_STATUS = 0
+	BEGIN
+		EXEC SQLeros.BI_MigrarTiempo @pagoalq_fecha, @tiempo OUTPUT
+		EXEC SQLeros.BI_MigrarTiempo @pagoalq_fecha_inicio, @tiempo_ini OUTPUT
+		EXEC SQLeros.BI_MigrarTiempo @pagoalq_fecha_fin, @tiempo_fin OUTPUT
+		EXEC SQLeros.BI_MigrarTiempo @pagoalq_vencimiento, @tiempo_vencimiento OUTPUT
+		INSERT INTO SQLeros.BI_PagoAlquiler (pagoalq_alquiler, pagoalq_codigo, pagoalq_descripcion_periodo, pagoalq_tiempo, pagoalq_tiempo_fin, pagoalq_tiempo_inicio, pagoalq_importe, pagoalq_medio, pagoalq_nro_periodo, pagoalq_tiempo_vencimiento)
+		VALUES (@pagoalq_alquiler , @pagoalq_codigo , @pagoalq_descripcion_periodo , @tiempo , @tiempo_fin , @tiempo_ini , @pagoalq_importe , @pagoalq_medio , @pagoalq_nro_periodo , @tiempo_vencimiento )
+		FETCH NEXT FROM c_pagos INTO @pagoalq_alquiler , @pagoalq_codigo , @pagoalq_descripcion_periodo , @pagoalq_fecha , @pagoalq_fecha_fin , @pagoalq_fecha_inicio , @pagoalq_importe , @pagoalq_medio , @pagoalq_nro_periodo , @pagoalq_vencimiento 
+	END
+	CLOSE c_pagos
+	DEALLOCATE c_pagos
 END
 GO
 
@@ -526,6 +568,7 @@ BEGIN
 	WHERE P1.pagoalq_codigo = bi_pagoAlq_codigo
 END
 GO
+
 
 /*VISTA 1*/
 CREATE VIEW SQLeros.BI_DuracionPromedioDeAnuncios AS
@@ -603,6 +646,7 @@ FROM SQLeros.BI_PagoAlq
 GROUP BY bi_tiempo_month, bi_tiempo_year
 GO
 
+
 /*VISTA 5*/
 -- Nota: esta vista esta vacía pero puede que sea error nuestro
 -- SELECT * FROM SQLeros.BI_PagoAlq WHERE bi_pagoAlq_estado = 'Activo'
@@ -610,7 +654,7 @@ GO
 
 CREATE VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler
 AS
-SELECT bi_tiempo_year, bi_tiempo_month, AVG((bi_pagoAlq_monto/bi_pagoAlq_montoAnterior)*100) AS [Porcentaje Aumento]
+SELECT * /*bi_tiempo_year, bi_tiempo_month, AVG((bi_pagoAlq_monto/bi_pagoAlq_montoAnterior)*100) AS [Porcentaje Aumento]*/
 FROM SQLeros.BI_PagoAlq
 	JOIN SQLeros.BI_Tiempo ON bi_pagoAlq_tiempoInicial = bi_tiempo_codigo
 WHERE bi_pagoAlq_estado = 'Activo' AND bi_pagoAlq_monto > bi_pagoAlq_montoAnterior
@@ -685,8 +729,9 @@ BEGIN TRANSACTION
 	BEGIN TRY
 		EXEC SQLeros.BI_MigrarInquilinoPorAlquiler
 		EXEC SQLeros.BI_MigrarTiempoAlq
-		EXEC SQLeros.BI_MigrarAlquileres
-		EXEC SQLeros.BI_ObtenerPagoAnterior
+		EXEC SQLeros.BI_MigrarPagoAlq
+		--EXEC SQLeros.BI_MigrarPagoAlquileres
+		--EXEC SQLeros.BI_ObtenerPagoAnterior
 		EXEC SQLeros.BI_MigrarAnuncio
 		EXEC SQLeros.BI_MigrarInmueble
 		EXEC SQLeros.BI_MigrarVentas

@@ -20,8 +20,16 @@ IF OBJECT_ID('SQLeros.BI_PrecioPromedioDeM2', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_PrecioPromedioDeM2
 GO
 
-IF OBJECT_ID('SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler', 'V') IS NOT NULL
-	DROP VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler
+IF OBJECT_ID('SQLeros.MontoTotalDeCierreDeContratosVentas', 'V') IS NOT NULL
+	DROP VIEW SQLeros.MontoTotalDeCierreDeContratosVentas
+GO
+
+IF OBJECT_ID('SQLeros.MontoTotalDeCierreDeContratosAlquiler', 'V') IS NOT NULL
+	DROP VIEW SQLeros.MontoTotalDeCierreDeContratosAlquiler
+GO
+
+IF OBJECT_ID('SQLeros.MontoTotalDeCierreDeContratos', 'V') IS NOT NULL
+	DROP VIEW SQLeros.MontoTotalDeCierreDeContratos
 GO
 
 IF OBJECT_ID('SQLeros.BI_Tiempo', 'U') IS NOT NULL
@@ -468,7 +476,7 @@ JOIN SQLeros.BI_Persona ON pers_codigo = inquilino_persona
 JOIN SQLeros.BI_RangoEtario ON rangoetario_codigo = pers_rango_etario
 JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_anu_tiempo_pub
 GROUP BY rangoetario_codigo, rangoetario_descripcion, barrio_codigo, barrio_descripcion, bi_tiempo_cuatrimestre, bi_tiempo_year
--ORDER BY COUNT(alq_codigo) DESC
+ORDER BY COUNT(alq_codigo) DESC
 GO
 /*
 SELECT rangoetario_descripcion,

@@ -24,11 +24,6 @@ IF OBJECT_ID('SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler', 'V') IS NOT NUL
 	DROP VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler
 GO
 
-IF OBJECT_ID('SQLeros.BI_PorcentajeIncrementoValorAlquiler', 'V') IS NOT NULL
-	DROP VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler
-GO
-
-
 IF OBJECT_ID('SQLeros.BI_Tiempo', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_Tiempo
 GO
@@ -428,7 +423,7 @@ BEGIN
 			EXEC SQLeros.BI_MigrarTiempo @fechaVencimiento, @tiempoVencimiento OUTPUT
 			EXEC SQLeros.BI_MigrarTiempo @fechaPago, @tiempoPago OUTPUT
 			EXEC SQLeros.BI_MigrarTiempo @fechaInicial, @tiempoInicial OUTPUT
-			INSERT INTO BI_PagoAlq (bi_pagoAlq_tiempoVencimiento, bi_pagoAlq_tiempo, bi_pagoAlq_fechaVencimiento, bi_pagoAlq_fecha, bi_pagoAlq_monto, bi_pagoAlq_montoAnterior, bi_pagoAlq_estado, bi_pagoAlq_tiempoInicial)
+			INSERT INTO BI_PagoAlq (bi_pagoAlq_tiempoVencimiento, bi_pagoAlq_tiempo, bi_pagoAlq_fechaVencimiento, bi_pagoAlq_fecha, bi_pagoAlq_monto, bi_pagoAlq_montoAnterior, bi_pagoAlq_estado)
 			VALUES (@tiempoVencimiento, @tiempoPago, @fechaVencimiento, @fechaPago, @monto, SQLeros.BI_MontoPagoAnterior(@codPago), @estado, @tiempoInicial)
 			FETCH NEXT FROM c_pagoAlq INTO @fechaVencimiento, @fechaPago, @monto, @codPago, @estado, @fechaInicial
 		END
@@ -473,7 +468,7 @@ JOIN SQLeros.BI_Persona ON pers_codigo = inquilino_persona
 JOIN SQLeros.BI_RangoEtario ON rangoetario_codigo = pers_rango_etario
 JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_anu_tiempo_pub
 GROUP BY rangoetario_codigo, rangoetario_descripcion, barrio_codigo, barrio_descripcion, bi_tiempo_cuatrimestre, bi_tiempo_year
---ORDER BY COUNT(alq_codigo) DESC
+-ORDER BY COUNT(alq_codigo) DESC
 GO
 /*
 SELECT rangoetario_descripcion,
@@ -549,8 +544,18 @@ JOIN SQLeros.BI_RangoEtario ON rangoetario_codigo = pers_rango_etario
 JOIN SQLeros.BI_Venta ON bi_venta_anuncio = bi_anu_codigo
 GROUP BY tipooperacion_descripcion, rangoetario_descripcion
 GO
-SELECT * FROM SQLeros.PrecioPromedioDeInmuebles
-*/
+
+/*VISTA 9*/
+CREATE VIEW SQLeros.MontoTotalDeCierreDeContratos AS
+SELECT bi_tiempo_cuatrimestre, sucur_nombre, tipooperacion_descripcion, moneda_nombre, SUM(pagoventa_importe) AS 'Monto total de cierre' FROM SQLeros.BI_Anuncio
+JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_anu_tiempo_pub
+JOIN SQLeros.Sucursal ON sucur_codigo = bi_anu_sucursal
+JOIN SQLeros.Moneda ON moneda_codigo = bi_anu_moneda
+JOIN SQLeros.TipoOperacion ON tipooperacion_codigo = bi_anu_tipo_op
+JOIN SQLeros.BI_Venta ON bi_venta_anuncio = bi_anu_codigo
+JOIN SQLeros.PagoVenta ON pagoventa_venta = bi_venta_codigo
+GROUP BY bi_tiempo_cuatrimestre, sucur_nombre, tipooperacion_descripcion, moneda_nombre
+GO
 
 
 BEGIN TRANSACTION

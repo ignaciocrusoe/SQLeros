@@ -875,11 +875,12 @@ CREATE PROCEDURE SQLeros.MigrarPagoVenta
 	AS
 		BEGIN
 			INSERT INTO SQLeros.PagoVenta(pagoventa_venta, pagoventa_importe, pagoventa_moneda, pagoventa_cotizacion, pagoventa_medio)
-			SELECT DISTINCT VENTA_CODIGO, PAGO_VENTA_IMPORTE, moneda_codigo, PAGO_VENTA_COTIZACION, medio_codigo
-			FROM gd_esquema.Maestra
-			JOIN SQLeros.MedioDePago ON medio_nombre = PAGO_VENTA_MEDIO_PAGO
-			JOIN SQLeros.Moneda ON moneda_nombre = PAGO_VENTA_MONEDA
-			GROUP BY VENTA_CODIGO, PAGO_VENTA_IMPORTE, moneda_codigo, PAGO_VENTA_COTIZACION, medio_codigo
+			SELECT DISTINCT V.venta_codigo, M.PAGO_VENTA_IMPORTE, moneda_codigo, M.PAGO_VENTA_COTIZACION, medio_codigo
+			FROM gd_esquema.Maestra M
+			JOIN SQLeros.MedioDePago ON medio_nombre = M.PAGO_VENTA_MEDIO_PAGO
+			JOIN SQLeros.Moneda ON moneda_nombre = M.PAGO_VENTA_MONEDA
+			JOIN SQLeros.Venta V ON venta_codigo_maestra = M.VENTA_CODIGO
+			GROUP BY V.venta_codigo, M.PAGO_VENTA_IMPORTE, moneda_codigo, M.PAGO_VENTA_COTIZACION, medio_codigo
 		END
 GO
 

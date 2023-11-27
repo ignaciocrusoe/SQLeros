@@ -32,6 +32,18 @@ IF OBJECT_ID('SQLeros.MontoTotalDeCierreDeContratos', 'V') IS NOT NULL
 	DROP VIEW SQLeros.MontoTotalDeCierreDeContratos
 GO
 
+IF OBJECT_ID('SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler
+GO
+
+IF OBJECT_ID('SQLeros.BI_PorcentajeIncrementoValorAlquiler', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler
+GO
+
+IF OBJECT_ID('SQLeros.BI_ValorPromedioDeLaComision', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_ValorPromedioDeLaComision
+GO
+
 IF OBJECT_ID('SQLeros.BI_Tiempo', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_Tiempo
 GO
@@ -164,7 +176,7 @@ CREATE TABLE SQLeros.BI_Persona(
 GO
 
 CREATE TABLE SQLeros.BI_PagoAlq(
-	bi_pagoAlq_codigo INT PRIMARY KEY,
+	bi_pagoAlq_codigo INT IDENTITY PRIMARY KEY,
 	bi_pagoAlq_tiempoVencimiento INT,
 	bi_pagoAlq_tiempo INT,
 	--pagoAlq_esMoroso BIT	-- Es un campo calculado, no se si es correcto utilizarlo
@@ -405,9 +417,7 @@ BEGIN
 	DECLARE @monto DECIMAL(12, 2)
 	SELECT @monto = P2.pagoalq_importe
 	FROM SQLeros.PagoAlquiler AS P1
-		JOIN SQLeros.DetalleAlquiler AS D1 ON pagoalq_alquiler = detallealq_codigo
-		JOIN SQLeros.DetalleAlquiler AS D2 ON D1.detallealq_alquiler = D2.detallealq_alquiler
-		JOIN SQLeros.PagoAlquiler AS P2 ON P2.pagoalq_alquiler = D2.detallealq_codigo 
+		JOIN SQLeros.PagoAlquiler AS P2 ON P2.pagoalq_alquiler = P1.pagoalq_alquiler
 	WHERE P1.pagoalq_codigo = @pagoAlquiler AND MONTH(P1.pagoalq_fecha) - 1 = MONTH(P2.pagoalq_fecha)
 	RETURN ISNULL(@monto, 0)
 END
@@ -420,10 +430,9 @@ BEGIN
 	DECLARE @fechaVencimiento SMALLDATETIME, @fechaPago SMALLDATETIME, @tiempoVencimiento INT, @tiempoPago INT, @monto DECIMAL(12, 2), @codPago INT, @estado CHAR(25), @fechaInicial SMALLDATETIME, @tiempoInicial INT
 	DECLARE c_pagoAlq CURSOR FOR
 		SELECT pagoalq_vencimiento, pagoalq_fecha, pagoalq_importe, pagoalq_codigo, estadoalquiler_descripcion, pagoalq_fecha_inicio
-		FROM PagoAlquiler
-			JOIN DetalleAlquiler ON pagoalq_alquiler = detallealq_alquiler
-			JOIN Alquiler ON detallealq_alquiler = Alquiler.alq_codigo
-			JOIN EstadoAlquiler ON alq_estado = estadoalquiler_codigo
+		FROM SQLeros.PagoAlquiler
+			JOIN SQLeros.Alquiler ON pagoalq_alquiler = alq_codigo
+			JOIN SQLeros.EstadoAlquiler ON alq_estado = estadoalquiler_codigo
 	OPEN c_pagoAlq
 		FETCH NEXT FROM c_pagoAlq INTO @fechaVencimiento, @fechaPago, @monto, @codPago, @estado, @fechaInicial
 		WHILE @@FETCH_STATUS = 0
@@ -431,7 +440,7 @@ BEGIN
 			EXEC SQLeros.BI_MigrarTiempo @fechaVencimiento, @tiempoVencimiento OUTPUT
 			EXEC SQLeros.BI_MigrarTiempo @fechaPago, @tiempoPago OUTPUT
 			EXEC SQLeros.BI_MigrarTiempo @fechaInicial, @tiempoInicial OUTPUT
-			INSERT INTO BI_PagoAlq (bi_pagoAlq_tiempoVencimiento, bi_pagoAlq_tiempo, bi_pagoAlq_fechaVencimiento, bi_pagoAlq_fecha, bi_pagoAlq_monto, bi_pagoAlq_montoAnterior, bi_pagoAlq_estado)
+			INSERT INTO SQLeros.BI_PagoAlq (bi_pagoAlq_tiempoVencimiento, bi_pagoAlq_tiempo, bi_pagoAlq_fechaVencimiento, bi_pagoAlq_fecha, bi_pagoAlq_monto, bi_pagoAlq_montoAnterior, bi_pagoAlq_estado, bi_pagoAlq_tiempoInicial)
 			VALUES (@tiempoVencimiento, @tiempoPago, @fechaVencimiento, @fechaPago, @monto, SQLeros.BI_MontoPagoAnterior(@codPago), @estado, @tiempoInicial)
 			FETCH NEXT FROM c_pagoAlq INTO @fechaVencimiento, @fechaPago, @monto, @codPago, @estado, @fechaInicial
 		END
@@ -463,7 +472,7 @@ JOIN SQLeros.Moneda ON moneda_codigo = anu_moneda
 GROUP BY tipooperacion_descripcion, tipoinmueble_descripcion, inm_superficie, moneda_nombre
 GO
 
-/*VISTA 3*/
+/*VISTA 3*//*
 CREATE VIEW SQLeros.BI_BarriosMasElegidos AS
 SELECT rangoetario_descripcion,bi_tiempo_year, bi_tiempo_cuatrimestre, barrio_descripcion, COUNT(alq_codigo) AS [count] FROM SQLeros.Alquiler
 JOIN SQLeros.BI_Anuncio ON bi_anu_codigo = alq_anuncio
@@ -477,7 +486,7 @@ JOIN SQLeros.BI_RangoEtario ON rangoetario_codigo = pers_rango_etario
 JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_anu_tiempo_pub
 GROUP BY rangoetario_codigo, rangoetario_descripcion, barrio_codigo, barrio_descripcion, bi_tiempo_cuatrimestre, bi_tiempo_year
 ORDER BY COUNT(alq_codigo) DESC
-GO
+GO*/
 /*
 SELECT rangoetario_descripcion,
 	   bi_tiempo_cuatrimestre,
@@ -538,7 +547,7 @@ JOIN SQLeros.Sucursal ON sucur_codigo = bi_anu_sucursal
 GROUP BY tipooperacion_codigo, tipooperacion_descripcion, sucur_codigo, sucur_nombre
 GO
 
-/*VISTA 8*/
+/*VISTA 8*//*
 CREATE VIEW SQLeros.PorcentajeDeOperacionesConcretadas AS
 SELECT tipooperacion_descripcion,
 rangoetario_descripcion,
@@ -551,7 +560,7 @@ JOIN SQLeros.BI_Persona ON pers_codigo = agen_persona
 JOIN SQLeros.BI_RangoEtario ON rangoetario_codigo = pers_rango_etario
 JOIN SQLeros.BI_Venta ON bi_venta_anuncio = bi_anu_codigo
 GROUP BY tipooperacion_descripcion, rangoetario_descripcion
-GO
+GO*/
 
 /*VISTA 9*/
 CREATE VIEW SQLeros.MontoTotalDeCierreDeContratosVentas AS
@@ -574,12 +583,12 @@ JOIN SQLeros.Alquiler ON alq_anuncio = bi_anu_codigo
 JOIN SQLeros.PagoAlquiler ON pagoalq_alquiler = alq_codigo
 GROUP BY bi_tiempo_cuatrimestre, sucur_nombre, tipooperacion_descripcion, moneda_nombre
 GO
-
+/*
 CREATE VIEW SQLeros.MontoTotalDeCierreDeContratosVentas AS
 SELECT * FROM SQLeros.MontoTotalDeCierreDeContratosAlquiler
 UNION 
 SELECT * FROM SQLeros.MontoTotalDeCierreDeContratosVentas
-GO
+GO*/
 BEGIN TRANSACTION
 	BEGIN TRY
 		EXEC SQLeros.BI_MigrarAnuncio

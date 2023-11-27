@@ -546,7 +546,7 @@ GROUP BY tipooperacion_descripcion, rangoetario_descripcion
 GO
 
 /*VISTA 9*/
-CREATE VIEW SQLeros.MontoTotalDeCierreDeContratos AS
+CREATE VIEW SQLeros.MontoTotalDeCierreDeContratosVentas AS
 SELECT bi_tiempo_cuatrimestre, sucur_nombre, tipooperacion_descripcion, moneda_nombre, SUM(pagoventa_importe) AS 'Monto total de cierre' FROM SQLeros.BI_Anuncio
 JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_anu_tiempo_pub
 JOIN SQLeros.Sucursal ON sucur_codigo = bi_anu_sucursal
@@ -556,8 +556,22 @@ JOIN SQLeros.BI_Venta ON bi_venta_anuncio = bi_anu_codigo
 JOIN SQLeros.PagoVenta ON pagoventa_venta = bi_venta_codigo
 GROUP BY bi_tiempo_cuatrimestre, sucur_nombre, tipooperacion_descripcion, moneda_nombre
 GO
+CREATE VIEW SQLeros.MontoTotalDeCierreDeContratosAlquiler AS
+SELECT bi_tiempo_cuatrimestre, sucur_nombre, tipooperacion_descripcion, moneda_nombre, SUM(pagoalq_importe) AS 'Monto total de cierre' FROM SQLeros.BI_Anuncio
+JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_anu_tiempo_pub
+JOIN SQLeros.Sucursal ON sucur_codigo = bi_anu_sucursal
+JOIN SQLeros.Moneda ON moneda_codigo = bi_anu_moneda
+JOIN SQLeros.TipoOperacion ON tipooperacion_codigo = bi_anu_tipo_op
+JOIN SQLeros.Alquiler ON alq_anuncio = bi_anu_codigo
+JOIN SQLeros.PagoAlquiler ON pagoalq_alquiler = alq_codigo
+GROUP BY bi_tiempo_cuatrimestre, sucur_nombre, tipooperacion_descripcion, moneda_nombre
+GO
 
-
+CREATE VIEW SQLeros.MontoTotalDeCierreDeContratosVentas AS
+SELECT * FROM SQLeros.MontoTotalDeCierreDeContratosAlquiler
+UNION 
+SELECT * FROM SQLeros.MontoTotalDeCierreDeContratosVentas
+GO
 BEGIN TRANSACTION
 	BEGIN TRY
 		EXEC SQLeros.BI_MigrarAnuncio

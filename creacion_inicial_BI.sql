@@ -96,6 +96,10 @@ IF OBJECT_ID('SQLeros.BI_MontoPagoAnterior', 'FN') IS NOT NULL
 	DROP FUNCTION SQLeros.BI_MontoPagoAnterior
 GO
 
+IF OBJECT_ID('SQLeros.BI_InquilinoPorAlquiler', 'FN') IS NOT NULL
+	DROP FUNCTION SQLeros.BI_InquilinoPorAlquiler
+GO
+
 -- Tablas dimensionales
 CREATE TABLE SQLeros.BI_Tiempo(
 	bi_tiempo_codigo INT IDENTITY PRIMARY KEY,
@@ -117,7 +121,7 @@ CREATE TABLE SQLeros.BI_RangoM2(
 )
 GO
 
--- Fact table
+-- Fact tables
 CREATE TABLE SQLeros.BI_Venta(
 	 bi_venta_codigo INT PRIMARY KEY,
 	 bi_venta_comprador INT,
@@ -149,7 +153,6 @@ GO
 
 CREATE TABLE SQLeros.BI_Inmueble(
 	bi_inm_codigo INT PRIMARY KEY,
-	bi_inm_codigo_maestra INT,
 	bi_inm_nombre VARCHAR(50),
 	bi_inm_descripcion VARCHAR(50),
 	bi_inm_direccion VARCHAR(100),
@@ -191,6 +194,12 @@ CREATE TABLE SQLeros.BI_PagoAlq(
 	bi_pagoAlq_monto DECIMAL(12, 2),
 	bi_pagoAlq_montoAnterior DECIMAL(12, 2),
 	bi_pagoAlq_tiempoInicial INT
+)
+GO
+
+CREATE TABLE SQLeros.BI_InquilinoPorAlquiler(
+	inquilinoporalquiler_inquilino INT,
+	inquilinoporalquiler_alquiler INT,
 )
 GO
 
@@ -533,7 +542,7 @@ GO
 
 /*VISTA 3*/
 CREATE VIEW SQLeros.BI_BarriosMasElegidos AS
-SELECT rangoetario_descripcion,bi_tiempo_year, bi_tiempo_cuatrimestre, barrio_descripcion, COUNT(alq_codigo) AS [count] FROM SQLeros.Alquiler
+SELECT TOP 5 rangoetario_descripcion,bi_tiempo_year, bi_tiempo_cuatrimestre, barrio_descripcion, COUNT(alq_codigo) AS [count] FROM SQLeros.Alquiler
 JOIN SQLeros.BI_Anuncio ON bi_anu_codigo = alq_anuncio
 JOIN SQLeros.BI_Inmueble ON bi_inm_codigo = bi_anu_inmueble
 JOIN SQLeros.Ubicacion ON ubicacion_codigo = bi_inm_ubicacion
@@ -622,7 +631,7 @@ GO
 CREATE VIEW SQLeros.PorcentajeDeOperacionesConcretadas AS
 SELECT tipooperacion_descripcion,
 rangoetario_descripcion,
-((SELECT SUM(bi_venta_codigo) FROM SQLeros.BI_Venta WHERE bi_venta_anuncio = A.bi_anu_codigo) / (SELECT SUM(bi_anu_codigo) FROM SQLeros.BI_Anuncio)) AS [-]
+((SELECT SUM(bi_venta_codigo) FROM SQLeros.BI_Venta WHERE bi_venta_anuncio = A.bi_anu_codigo) / (SELECT SUM(AC.bi_anu_codigo) FROM SQLeros.BI_Anuncio AC GROUP BY AC.bi_anu_codigo)) AS [-]
 FROM SQLeros.BI_Anuncio A
 JOIN SQLeros.Sucursal ON sucur_codigo = bi_anu_sucursal
 JOIN SQLeros.TipoOperacion ON tipooperacion_codigo = bi_anu_tipo_op
@@ -656,7 +665,7 @@ JOIN SQLeros.PagoAlquiler ON pagoalq_alquiler = alq_codigo
 GROUP BY bi_tiempo_cuatrimestre, sucur_nombre, tipooperacion_descripcion, moneda_nombre
 GO
 
-CREATE VIEW SQLeros.MontoTotalDeCierreDeContratosVentas AS
+CREATE VIEW SQLeros.MontoTotalDeCierreDeContratos AS
 SELECT * FROM SQLeros.MontoTotalDeCierreDeContratosAlquiler
 UNION 
 SELECT * FROM SQLeros.MontoTotalDeCierreDeContratosVentas

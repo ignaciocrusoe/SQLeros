@@ -891,7 +891,7 @@ CREATE PROCEDURE SQLeros.MigrarInquilinoPorAlquiler
 	AS
 		BEGIN
 			INSERT INTO SQLeros.InquilinoPorAlquiler(inquilinoporalquiler_inquilino, inquilinoporalquiler_alquiler)
-			SELECT DISTINCT inquilino_codigo, alquiler_codigo
+			SELECT DISTINCT inquilino_codigo, alq_codigo
 			FROM gd_esquema.Maestra
 			JOIN Persona ON INQUILINO_DNI = pers_dni
 			JOIN SQLeros.Inquilino ON inquilino_persona = pers_codigo

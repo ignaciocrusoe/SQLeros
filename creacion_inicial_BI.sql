@@ -80,6 +80,10 @@ IF OBJECT_ID('SQLeros.BI_PagoAlq', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_PagoAlq
 GO
 
+IF OBJECT_ID('SQLeros.BI_InquilinoPorAlquiler', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_InquilinoPorAlquiler
+GO
+
 IF OBJECT_ID('SQLeros.BI_f_rango_superficie', 'FN') IS NOT NULL
 	DROP FUNCTION SQLeros.BI_f_rango_superficie
 GO
@@ -96,9 +100,6 @@ IF OBJECT_ID('SQLeros.BI_MontoPagoAnterior', 'FN') IS NOT NULL
 	DROP FUNCTION SQLeros.BI_MontoPagoAnterior
 GO
 
-IF OBJECT_ID('SQLeros.BI_InquilinoPorAlquiler', 'FN') IS NOT NULL
-	DROP FUNCTION SQLeros.BI_InquilinoPorAlquiler
-GO
 
 -- Tablas dimensionales
 CREATE TABLE SQLeros.BI_Tiempo(
@@ -272,10 +273,6 @@ BEGIN
 END
 GO
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarTiempo')
-	DROP PROCEDURE SQLeros.BI_MigrarTiempo
-GO
-
 CREATE FUNCTION SQLeros.BI_ObtenerCuatrimestre(@mes INT)
 RETURNS INT
 AS
@@ -301,6 +298,20 @@ BEGIN
 END
 GO
 
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarInquilinoPorAlquiler')
+	DROP PROCEDURE SQLeros.BI_MigrarInquilinoPorAlquiler
+GO
+CREATE PROCEDURE SQLeros.BI_MigrarInquilinoPorAlquiler
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_InquilinoPorAlquiler
+	SELECT * FROM SQLeros.InquilinoPorAlquiler
+END
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarTiempo')
+	DROP PROCEDURE SQLeros.BI_MigrarTiempo
+GO
 CREATE PROCEDURE SQLeros.BI_MigrarTiempo (@tiempo SMALLDATETIME, @key INT OUTPUT)
 AS
 BEGIN
@@ -547,7 +558,7 @@ JOIN SQLeros.BI_Anuncio ON bi_anu_codigo = alq_anuncio
 JOIN SQLeros.BI_Inmueble ON bi_inm_codigo = bi_anu_inmueble
 JOIN SQLeros.Ubicacion ON ubicacion_codigo = bi_inm_ubicacion
 JOIN SQLeros.Barrio ON barrio_codigo = ubicacion_barrio
-JOIN SQLeros.InquilinoPorAlquiler ON inquilinoporalquiler_alquiler = alq_codigo
+JOIN SQLeros.BI_InquilinoPorAlquiler ON inquilinoporalquiler_alquiler = alq_codigo
 JOIN SQLeros.Inquilino ON inquilino_codigo = inquilinoporalquiler_inquilino
 JOIN SQLeros.BI_Persona ON pers_codigo = inquilino_persona
 JOIN SQLeros.BI_RangoEtario ON rangoetario_codigo = pers_rango_etario
@@ -639,7 +650,7 @@ JOIN SQLeros.Agente ON agen_codigo = bi_anu_agente
 JOIN SQLeros.BI_Persona ON pers_codigo = agen_persona
 JOIN SQLeros.BI_RangoEtario ON rangoetario_codigo = pers_rango_etario
 JOIN SQLeros.BI_Venta ON bi_venta_anuncio = bi_anu_codigo
-GROUP BY tipooperacion_descripcion, rangoetario_descripcion
+GROUP BY tipooperacion_descripcion, rangoetario_descripcion, A.bi_anu_codigo
 GO
 
 /*VISTA 9*/
@@ -672,6 +683,7 @@ SELECT * FROM SQLeros.MontoTotalDeCierreDeContratosVentas
 GO
 BEGIN TRANSACTION
 	BEGIN TRY
+		EXEC SQLeros.BI_MigrarInquilinoPorAlquiler
 		EXEC SQLeros.BI_MigrarTiempoAlq
 		EXEC SQLeros.BI_MigrarAlquileres
 		EXEC SQLeros.BI_ObtenerPagoAnterior

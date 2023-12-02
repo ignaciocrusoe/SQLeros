@@ -50,7 +50,6 @@ IF OBJECT_ID('SQLeros.BI_TipoMoneda', 'U') IS NOT NULL
 GO
 
 --Borro las tablas de hechos
-
 IF OBJECT_ID('SQLeros.BI_Anuncio', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_Anuncio
 GO
@@ -202,3 +201,58 @@ CREATE TABLE SQLeros.BI_PagoAlquiler(
 	bi_pagoalq_vencimiento INT
 )
 GO
+
+--Procedures para migrar las dimensiones
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarBarrio')
+	DROP PROCEDURE SQLeros.BI_MigrarBarrio
+GO
+CREATE PROCEDURE SQLeros.BI_MigrarBarrio
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_Barrio (bi_barrio_codigo, bi_barrio_descripcion)
+	SELECT DISTINCT barrio_codigo, barrio_descripcion FROM SQLeros.Barrio
+END
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarLocalidad')
+	DROP PROCEDURE SQLeros.BI_MigrarLocalidad
+GO
+CREATE PROCEDURE SQLeros.BI_MigrarLocalidad
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_Localidad(bi_localidad_codigo, bi_localidad_descripcion)
+	SELECT DISTINCT localidad_codigo, localidad_descripcion FROM SQLeros.Localidad
+END
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarProvincia')
+	DROP PROCEDURE SQLeros.BI_MigrarProvincia
+GO
+CREATE PROCEDURE SQLeros.BI_MigrarProvincia
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_Provincia(bi_provincia_codigo, bi_provincia_descripcion)
+	SELECT DISTINCT provincia_codigo, provincia_descripcion FROM SQLeros.Provincia
+END
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarUbicacion')
+	DROP PROCEDURE SQLeros.BI_MigrarUbicacion
+GO
+CREATE PROCEDURE SQLeros.BI_MigrarUbicacion
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_Ubicacion(bi_ubicacion_codigo, bi_ubicacion_barrio, bi_ubicacion_localidad, bi_ubicacion_provincia)
+	SELECT DISTINCT ubicacion_codigo, ubicacion_barrio, ubicacion_localidad, ubicacion_provincia FROM SQLeros.Ubicacion
+END
+
+--Procedures para migrar los hechos
+
+--Creación de vistas
+
+--Migración de Tablas
+BEGIN TRANSACTION
+	BEGIN TRY
+		-----EXEC ---
+		COMMIT TRANSACTION;
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION;
+	END CATCH

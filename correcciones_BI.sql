@@ -1,11 +1,60 @@
 USE GD2C2023
 
+IF OBJECT_ID('SQLeros.BI_Tiempo', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_Tiempo
+GO
+
+IF OBJECT_ID('SQLeros.BI_Barrio', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_Barrio
+GO
+
+IF OBJECT_ID('SQLeros.BI_Localidad', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_Localidad
+GO
+
+IF OBJECT_ID('SQLeros.BI_Provincia', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_Provincia
+GO
+
+IF OBJECT_ID('SQLeros.BI_Ubicacion', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_Ubicacion
+GO
+
+IF OBJECT_ID('SQLeros.BI_Sucursal', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_Sucursal
+GO
+
+IF OBJECT_ID('SQLeros.BI_RangoEtario', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_RangoEtario
+GO
+
+IF OBJECT_ID('SQLeros.BI_TipoInmueble', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_TipoInmueble
+GO
+
+IF OBJECT_ID('SQLeros.BI_Ambientes', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_Ambientes
+GO
+
+IF OBJECT_ID('SQLeros.BI_RangoM2', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_RangoM2
+GO
+
+IF OBJECT_ID('SQLeros.BI_TipoOperacion', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_TipoOperacion
+GO
+
+IF OBJECT_ID('SQLeros.BI_TipoMoneda', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_TipoMoneda
+GO
+
+
+
 --Dimensiones
 CREATE TABLE SQLeros.BI_Tiempo(
 	bi_tiempo_codigo INT IDENTITY PRIMARY KEY,
 	bi_tiempo_year INT,
 	bi_tiempo_month INT,
-	bi_tiempo_day INT,
 	bi_tiempo_cuatrimestre INT
 )
 
@@ -68,7 +117,7 @@ CREATE TABLE SQLeros.BI_RangoM2(
 )
 GO
 
-CREATE TABLE SQLeros.TipoOperacion(
+CREATE TABLE SQLeros.BI_TipoOperacion(
 	bi_tipooperacion_codigo INT PRIMARY KEY,
 	bi_tipooperacion_descripcion VARCHAR(40)
 )
@@ -94,5 +143,32 @@ CREATE TABLE SQLeros.BI_Anuncio(
 	bi_anu_estado INT, --Habría que agregar la dimensión estado
 	bi_anu_tipo_periodo INT,  --Habría que agregar la dimensión tipo_periodo
 	bi_anu_duracion INT --En días
+)
+GO
+
+CREATE TABLE SQLeros.BI_Alquiler(
+	bi_alq_codigo INT PRIMARY KEY,
+	bi_alq_fecha_inicio SMALLDATETIME,
+	bi_alq_fecha_fin SMALLDATETIME,
+	bi_alq_cant_periodos INT,
+	bi_alq_depositio DECIMAL(12,2),
+	bi_alq_comision DECIMAL(12,2),
+	bi_alq_gastos DECIMAL(12,2),
+	bi_alq_estado INT,
+	bi_alq_precio DECIMAL(12,2),
+	bi_aql_rengoetario_agente INT,
+	bi_aql_rengoetario_inquilino INT,
+)
+GO
+
+CREATE TABLE SQLeros.BI_Venta(
+	bi_venta_codigo INT PRIMARY KEY,
+	bi_venta_anuncio INT,
+	bi_venta_fecha SMALLDATETIME,
+	bi_venta_precio DECIMAL(12,2),
+	bi_venta_comision DECIMAL(12,2),
+	bi_venta_moneda INT,
+	bi_venta_rengoetario_agente INT,
+	bi_venta_rengoetario_comprador INT
 )
 GO

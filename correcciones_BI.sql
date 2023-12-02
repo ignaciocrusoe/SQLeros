@@ -139,7 +139,7 @@ CREATE TABLE SQLeros.BI_TipoOperacion(
 )
 GO
 
-CREATE TABLE SQLeros.BI_Moneda(
+CREATE TABLE SQLeros.BI_TipoMoneda(
 	bi_moneda_codigo INT PRIMARY KEY,
 	bi_moneda_nombre VARCHAR(20),
 	bi_moneda_eq_pesos decimal(8,2) --Puede ser que no necesitemos el equivalente en pesos
@@ -212,6 +212,7 @@ BEGIN
 	INSERT INTO SQLeros.BI_Barrio (bi_barrio_codigo, bi_barrio_descripcion)
 	SELECT DISTINCT barrio_codigo, barrio_descripcion FROM SQLeros.Barrio
 END
+GO
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarLocalidad')
 	DROP PROCEDURE SQLeros.BI_MigrarLocalidad
@@ -222,6 +223,7 @@ BEGIN
 	INSERT INTO SQLeros.BI_Localidad(bi_localidad_codigo, bi_localidad_descripcion)
 	SELECT DISTINCT localidad_codigo, localidad_descripcion FROM SQLeros.Localidad
 END
+GO
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarProvincia')
 	DROP PROCEDURE SQLeros.BI_MigrarProvincia
@@ -232,6 +234,7 @@ BEGIN
 	INSERT INTO SQLeros.BI_Provincia(bi_provincia_codigo, bi_provincia_descripcion)
 	SELECT DISTINCT provincia_codigo, provincia_descripcion FROM SQLeros.Provincia
 END
+GO
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarUbicacion')
 	DROP PROCEDURE SQLeros.BI_MigrarUbicacion
@@ -242,7 +245,34 @@ BEGIN
 	INSERT INTO SQLeros.BI_Ubicacion(bi_ubicacion_codigo, bi_ubicacion_barrio, bi_ubicacion_localidad, bi_ubicacion_provincia)
 	SELECT DISTINCT ubicacion_codigo, ubicacion_barrio, ubicacion_localidad, ubicacion_provincia FROM SQLeros.Ubicacion
 END
+GO
 
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_InsertarRangoEtario')
+	DROP PROCEDURE SQLeros.BI_InsertarRangoEtario
+GO
+CREATE PROCEDURE SQLeros.BI_InsertarRangoEtario
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_RangoEtario (bi_rangoetario_descripcion) VALUES ('<25')
+	INSERT INTO SQLeros.BI_RangoEtario (bi_rangoetario_descripcion) VALUES ('25-35')
+	INSERT INTO SQLeros.BI_RangoEtario (bi_rangoetario_descripcion) VALUES ('35-50')
+	INSERT INTO SQLeros.BI_RangoEtario (bi_rangoetario_descripcion) VALUES ('>50')
+END
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_InsertarRangoM2"')
+	DROP PROCEDURE SQLeros.BI_InsertarRangoM2
+GO
+CREATE PROCEDURE SQLeros.BI_InsertarRangoM2
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_RangoM2 (bi_rangom2_descripcion) VALUES ('<35')
+	INSERT INTO SQLeros.BI_RangoM2 (bi_rangom2_descripcion) VALUES ('35-55')
+	INSERT INTO SQLeros.BI_RangoM2 (bi_rangom2_descripcion) VALUES ('55-75')
+	INSERT INTO SQLeros.BI_RangoM2 (bi_rangom2_descripcion) VALUES ('75-100')
+	INSERT INTO SQLeros.BI_RangoM2 (bi_rangom2_descripcion) VALUES ('>100')
+END
+GO
 --Procedures para migrar los hechos
 
 --Creación de vistas
@@ -250,7 +280,11 @@ END
 --Migración de Tablas
 BEGIN TRANSACTION
 	BEGIN TRY
-		-----EXEC ---
+		EXEC SQLeros.BI_MigrarBarrio
+		EXEC SQLeros.BI_MigrarLocalidad
+		EXEC SQLeros.BI_MigrarProvincia
+		EXEC SQLeros.BI_InsertarRangoEtario
+		EXEC SQLeros.BI_InsertarRangoM2
 		COMMIT TRANSACTION;
 	END TRY
 	BEGIN CATCH

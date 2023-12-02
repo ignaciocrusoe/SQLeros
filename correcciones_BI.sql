@@ -1,5 +1,6 @@
 USE GD2C2023
 
+--Borro las tablas de dimensiones
 IF OBJECT_ID('SQLeros.BI_Tiempo', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_Tiempo
 GO
@@ -48,7 +49,23 @@ IF OBJECT_ID('SQLeros.BI_TipoMoneda', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_TipoMoneda
 GO
 
+--Borro las tablas de hechos
 
+IF OBJECT_ID('SQLeros.BI_Anuncio', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_Anuncio
+GO
+
+IF OBJECT_ID('SQLeros.Bi_alquiler', 'U') IS NOT NULL
+	DROP TABLE SQLeros.Bi_alquiler
+GO
+
+IF OBJECT_ID('SQLeros.BI_Venta', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_Venta
+GO
+
+IF OBJECT_ID('SQLeros.BI_PagoAlquiler', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_PagoAlquiler
+GO
 
 --Dimensiones
 CREATE TABLE SQLeros.BI_Tiempo(
@@ -134,10 +151,10 @@ GO
 CREATE TABLE SQLeros.BI_Anuncio(
 	bi_anu_codigo INT PRIMARY KEY,
 	bi_anu_sucursal INT,
-	bi_anu_fecha_pub SMALLDATETIME,
+	bi_anu_tiempo_pub INT,
 	bi_anu_precio DECIMAL(12,2),
 	bi_anu_costo DECIMAL(12,2),
-	bi_anu_fecha_fin SMALLDATETIME,
+	bi_anu_tiempo_fin INT,
 	bi_anu_tipo_op INT,
 	bi_anu_moneda INT,
 	bi_anu_estado INT, --Habría que agregar la dimensión estado
@@ -148,8 +165,8 @@ GO
 
 CREATE TABLE SQLeros.BI_Alquiler(
 	bi_alq_codigo INT PRIMARY KEY,
-	bi_alq_fecha_inicio SMALLDATETIME,
-	bi_alq_fecha_fin SMALLDATETIME,
+	bi_alq_tiempo_inicio INT,
+	bi_alq_tiempo_fin INT,
 	bi_alq_cant_periodos INT,
 	bi_alq_depositio DECIMAL(12,2),
 	bi_alq_comision DECIMAL(12,2),
@@ -164,11 +181,24 @@ GO
 CREATE TABLE SQLeros.BI_Venta(
 	bi_venta_codigo INT PRIMARY KEY,
 	bi_venta_anuncio INT,
-	bi_venta_fecha SMALLDATETIME,
+	bi_venta_tiempo INT,
 	bi_venta_precio DECIMAL(12,2),
 	bi_venta_comision DECIMAL(12,2),
 	bi_venta_moneda INT,
 	bi_venta_rengoetario_agente INT,
 	bi_venta_rengoetario_comprador INT
+)
+GO
+
+CREATE TABLE SQLeros.BI_PagoAlquiler(
+	bi_pagoalq_codigo INT PRIMARY KEY,
+	bi_pagoalq_tiempo INT,
+	bi_pagoalq_nro_periodo INT,
+	bi_pagoalq_descripcion_periodo VARCHAR(100),
+	bi_pagoalq_tiempo_inicio INT,
+	bi_pagoalq_tiempo_fin INT,
+	bi_pagoalq_importe DECIMAL(12,2),
+	bi_pagoalq_medio INT,
+	bi_pagoalq_vencimiento INT
 )
 GO

@@ -335,25 +335,38 @@ AS
 BEGIN
 	INSERT INTO SQLeros.BI_Tiempo(bi_tiempo_cuatrimestre, bi_tiempo_month, bi_tiempo_year)
 	SELECT distinct SQLeros.BI_ObtenerCuatrimestre(MONTH(pagoalq_fecha)), MONTH(pagoalq_fecha), YEAR(pagoalq_fecha) FROM SQLeros.PagoAlquiler
+	WHERE NOT EXISTS (SELECT bi_tiempo_cuatrimestre, bi_tiempo_month, bi_tiempo_year FROM SQLeros.BI_Tiempo
+					  WHERE bi_tiempo_cuatrimestre = SQLeros.BI_ObtenerCuatrimestre(MONTH(pagoalq_fecha))
+					  AND bi_tiempo_month = MONTH(pagoalq_fecha)
+					  AND bi_tiempo_year = YEAR(pagoalq_fecha))
 	UNION
 	SELECT distinct SQLeros.BI_ObtenerCuatrimestre(MONTH(pagoalq_fecha_inicio)), MONTH(pagoalq_fecha_inicio), YEAR(pagoalq_fecha_inicio) FROM SQLeros.PagoAlquiler
+	WHERE NOT EXISTS (SELECT bi_tiempo_cuatrimestre, bi_tiempo_month, bi_tiempo_year FROM SQLeros.BI_Tiempo
+					  WHERE bi_tiempo_cuatrimestre = SQLeros.BI_ObtenerCuatrimestre(MONTH(pagoalq_fecha))
+					  AND bi_tiempo_month = MONTH(pagoalq_fecha)
+					  AND bi_tiempo_year = YEAR(pagoalq_fecha))
 	UNION
 	SELECT distinct SQLeros.BI_ObtenerCuatrimestre(MONTH(pagoalq_vencimiento)), MONTH(pagoalq_vencimiento), YEAR(pagoalq_vencimiento) FROM SQLeros.PagoAlquiler
+	WHERE NOT EXISTS (SELECT bi_tiempo_cuatrimestre, bi_tiempo_month, bi_tiempo_year FROM SQLeros.BI_Tiempo
+					  WHERE bi_tiempo_cuatrimestre = SQLeros.BI_ObtenerCuatrimestre(MONTH(pagoalq_fecha))
+					  AND bi_tiempo_month = MONTH(pagoalq_fecha)
+					  AND bi_tiempo_year = YEAR(pagoalq_fecha))
 	-- Union demás fechas
 END
 GO
 
 
 --Procedures para migrar los hechos
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarPagoAlquileres')
-	DROP PROCEDURE SQLeros.BI_MigrarPagoAlquileres
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarPagoAlquiler')
+	DROP PROCEDURE SQLeros.BI_MigrarPagoAlquiler
 GO
 
-CREATE PROCEDURE SQLeros.BI_MigrarPagoAlquileres
+CREATE PROCEDURE SQLeros.BI_MigrarPagoAlquiler
 AS
 BEGIN
-	INSERT INTO SQLeros.BI_PagoAlquiler (bi_pagoalq_tiempo, bi_pagoalq_valor_promedio, bi_pagoalq_alquiler_esta_activo, bi_pagoalq_total_pagado, bi_pagoalq_cantidad_pagos, bi_pagoalq_paga_a_tiempo)
-	SELECT bi_tiempo_codigo, AVG(pagoalq_importe), 
+	INSERT INTO SQLeros.BI_PagoAlquiler (bi_pagoalq_alquiler_esta_activo, bi_pagoalq_cantidad_pagos, bi_pagoalq_codigo, bi_pagoalq_paga_a_tiempo, bi_pagoalq_porcentaje_aumento_pago, bi_pagoalq_tiempo, bi_pagoalq_total_pagado, bi_pagoalq_valor_promedio)
+	SELECT bi_tiempo_codigo,
+	AVG(pagoalq_importe), 
 		CASE WHEN estadoalquiler_descripcion = 'Activo' THEN 1 ELSE 0 END, SUM(pagoalq_importe), COUNT(*),
 		CASE WHEN pagoalq_fecha > pagoalq_vencimiento THEN 0 ELSE 1 END
 	FROM SQLeros.PagoAlquiler
@@ -414,7 +427,7 @@ GO
 
 /*VISTA 5*/
 -- Parece que no hay activos con aumento. Mostramos todos los activos (van a tener aumento = 0).
--- SELECT * FROM SQLeros.BI_PagoAlq WHERE bi_pagoAlq_estado = 'Activo'
+-- SELECT * FROM SQLeros.BI_PagoAlquiler WHERE bi_pagoalq_estado = 'Activo'
 -- SELECT PAGO_ALQUILER_IMPORTE FROM gd_esquema.Maestra WHERE ALQUILER_ESTADO = 'Activo'
 -- Nota: parece que todos los alquileres activos tienen un solo pago => nunca hay aumento
 
@@ -430,7 +443,7 @@ GO
 BEGIN TRANSACTION
 	BEGIN TRY
 		EXEC SQLeros.BI_MigrarTiempo
-		EXEC SQLeros.BI_MigrarPagoAlquileres
+		EXEC SQLeros.BI_MigrarPagoAlquiler
 		EXEC SQLeros.BI_AumentoPagoAlq
 
 		EXEC SQLeros.BI_MigrarBarrio

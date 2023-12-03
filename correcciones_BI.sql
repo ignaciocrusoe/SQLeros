@@ -165,7 +165,7 @@ GO
 
 --Hechos
 CREATE TABLE SQLeros.BI_Anuncio(
-	bi_anu_codigo INT PRIMARY KEY,
+	bi_anu_codigo INT IDENTITY PRIMARY KEY,
 	bi_anu_tiempo_pub INT,
 	bi_anu_precio_promedio DECIMAL(12,2),
 	bi_anu_tipo_op INT,
@@ -326,6 +326,28 @@ BEGIN
 END
 GO
 
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarTipoOperacion')
+	DROP PROCEDURE SQLeros.BI_MigrarTipoOperacion
+GO
+CREATE PROCEDURE SQLeros.BI_MigrarTipoOperacion
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_TipoOperacion (bi_tipooperacion_codigo, bi_tipooperacion_descripcion)
+	SELECT tipooperacion_codigo, tipooperacion_descripcion FROM SQLeros.TipoOperacion
+END
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarAmbientes')
+	DROP PROCEDURE SQLeros.BI_MigrarAmbientes
+GO
+CREATE PROCEDURE SQLeros.BI_MigrarAmbientes
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_Ambientes(bi_ambientes_codigo, bi_ambientes_cantidad)
+	SELECT ambientes_codigo, ambientes_cantidad FROM SQLeros.Ambientes
+END
+GO
+
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarLocalidad')
 	DROP PROCEDURE SQLeros.BI_MigrarLocalidad
 GO
@@ -411,11 +433,17 @@ BEGIN
 					  WHERE bi_tiempo_cuatrimestre = SQLeros.BI_ObtenerCuatrimestre(MONTH(pagoalq_fecha))
 					  AND bi_tiempo_month = MONTH(pagoalq_fecha)
 					  AND bi_tiempo_year = YEAR(pagoalq_fecha))
+	UNION
+	SELECT distinct SQLeros.BI_ObtenerCuatrimestre(MONTH(anu_fecha_pub)), MONTH(anu_fecha_pub), YEAR(anu_fecha_pub) FROM SQLeros.Anuncio
+	WHERE NOT EXISTS (SELECT bi_tiempo_cuatrimestre, bi_tiempo_month, bi_tiempo_year FROM SQLeros.BI_Tiempo
+					  WHERE bi_tiempo_cuatrimestre = SQLeros.BI_ObtenerCuatrimestre(MONTH(anu_fecha_pub))
+					  AND bi_tiempo_month = MONTH(anu_fecha_pub)
+					  AND bi_tiempo_year = YEAR(anu_fecha_pub))
 	-- Union demás fechas
 END
 GO
 
-
+BI_MigrarAnuncio
 --Procedures para migrar los hechos
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarAnuncio')
 	DROP PROCEDURE SQLeros.BI_MigrarAnuncio
@@ -482,6 +510,20 @@ END
 GO
 
 --Creación de vistas
+/*VISTA 1*/
+CREATE VIEW SQLeros.BI_DuracionPromedioDeAnuncios AS
+SELECT * /* bi_anu_duracion_promedio AS [Duración promedio en días],
+bi_tipooperacion_descripcion AS [Tipo de operación],
+bi_barrio_descripcion AS [Barrio],
+bi_ambientes_cantidad AS [Ambientes] */
+FROM SQLeros.BI_Anuncio
+JOIN SQLeros.BI_TipoOperacion ON bi_tipooperacion_codigo = bi_anu_tipo_op
+JOIN SQLeros.BI_Ubicacion ON bi_ubicacion_codigo = bi_anu_ubicacion
+JOIN SQLeros.BI_Barrio ON bi_barrio_codigo = bi_ubicacion_barrio
+JOIN SQLeros.BI_Ambientes ON bi_ambientes_codigo = bi_anu_ambientes
+GROUP BY bi_anu_duracion_promedio, bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_barrio_codigo, bi_barrio_descripcion, bi_ambientes_codigo, bi_ambientes_cantidad
+GO
+
 /*VISTA 4*/
 -- Nota: Esta vista esta vacía dado que no hay datos que cumplan la condicion.
 -- SELECT * FROM SQLeros.PagoAlquiler WHERE pagoalq_fecha > pagoalq_vencimiento
@@ -520,14 +562,15 @@ GO
 BEGIN TRANSACTION
 	BEGIN TRY
 		EXEC SQLeros.BI_MigrarTiempo
-		EXEC SQLeros.BI_MigrarPagoAlquiler
-		EXEC SQLeros.BI_AumentoPagoAlq
-
 		EXEC SQLeros.BI_MigrarBarrio
 		EXEC SQLeros.BI_MigrarLocalidad
 		EXEC SQLeros.BI_MigrarProvincia
+		EXEC SQLeros.BI_MigrarUbicacion
 		EXEC SQLeros.BI_InsertarRangoEtario
 		EXEC SQLeros.BI_InsertarRangoM2
+		EXEC SQLeros.BI_MigrarPagoAlquiler
+		EXEC SQLeros.BI_AumentoPagoAlq
+		EXEC SQLeros.BI_MigrarAnuncio
 		COMMIT TRANSACTION;
 	END TRY
 	BEGIN CATCH

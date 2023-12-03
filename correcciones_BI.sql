@@ -208,14 +208,13 @@ GO
 
 CREATE TABLE SQLeros.BI_PagoAlq(
 	bi_pagoAlq_codigo INT IDENTITY PRIMARY KEY,
-	bi_pagoAlq_tiempo INT,
-	bi_pagoAlq_porcentajeInclumientoPago INT,
-	bi_pagoAlq_valorPromedio INT,
-	bi_pagoAlq_estaActivo BIT,	-- Esto sería dimensión?
+	bi_pagoAlq_tiempo INT FOREIGN KEY REFERENCES SQLeros.Bi_Tiempo (bi_tiempo_codigo),
+	bi_pagoAlq_valorPromedio DECIMAL(12, 2),
+	bi_pagoAlq_estaActivo BIT,	-- Esto sería dimensión? O estado entero es dim?
 	bi_pagoAlq_pagaATiempo BIT,	-- dimensión?
 	bi_pagoAlq_cantidadPagos INT,
-	bi_pagoAlq_totalPagado INT,
-	bi_pagoAlq_porcentajeAumentoPago INT -- Solo para los alquileres activos que hayan aumentado desde el último pago
+	bi_pagoAlq_totalPagado DECIMAL(12, 2),
+	bi_pagoAlq_porcentajeAumentoPago DECIMAL(5, 2) -- Solo para los alquileres activos que hayan aumentado desde el último pago
 )
 GO
 
@@ -374,7 +373,8 @@ AS
 BEGIN
 	UPDATE SQLeros.BI_PagoAlq
 	SET bi_pagoAlq_porcentajeAumentoPago =
-		ISNULL(
+		 100 *
+		 ISNULL(
 			(SELECT AVG(SQLeros.BI_MontoPagoAnterior(pagoalq_codigo) / pagoalq_importe)
 			FROM SQLeros.PagoAlquiler AS P1
 				JOIN SQLeros.Alquiler ON pagoalq_alquiler = alq_codigo
@@ -387,7 +387,7 @@ BEGIN
 				ORDER BY P2.pagoalq_fecha DESC))
 		, 0)
 	FROM SQLeros.BI_PagoAlq
-		JOIN BI_Tiempo ON bi_pagoAlq_tiempo = bi_tiempo_codigo
+		JOIN SQLeros.BI_Tiempo ON bi_pagoAlq_tiempo = bi_tiempo_codigo
 	WHERE bi_pagoAlq_estaActivo = 1
 END
 GO
@@ -416,6 +416,7 @@ GO
 -- Parece que no hay activos con aumento. Mostramos todos los activos (van a tener aumento = 0).
 -- SELECT * FROM SQLeros.BI_PagoAlq WHERE bi_pagoAlq_estado = 'Activo'
 -- SELECT PAGO_ALQUILER_IMPORTE FROM gd_esquema.Maestra WHERE ALQUILER_ESTADO = 'Activo'
+-- Nota: parece que todos los alquileres activos tienen un solo pago => nunca hay aumento
 
 CREATE VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler
 AS
@@ -447,4 +448,14 @@ BEGIN TRANSACTION
 /*
 SELECT * FROM SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler		-- Vista 4
 SELECT * FROM SQLeros.BI_PorcentajeIncrementoValorAlquiler			-- Vista 5
+*/
+
+-- Para probar vista 5 - borrar
+
+/*
+	-- Insert para ver si funciona la vista
+	INSERT INTO SQLeros.PagoAlquiler (pagoalq_alquiler, pagoalq_fecha, pagoalq_vencimiento, pagoalq_importe, pagoalq_descripcion_periodo)
+	VALUES (3, '2023-12-02 00:00:00', '2024-01-02 00:00:00', 100, 'holachau1')
+
+	DELETE FROM SQLeros.PagoAlquiler WHERE pagoalq_descripcion_periodo = 'holachau1'
 */

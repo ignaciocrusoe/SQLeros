@@ -413,8 +413,7 @@ GROUP BY bi_pagoAlq_tiempo, bi_tiempo_year, bi_tiempo_month
 GO
 
 /*VISTA 5*/
--- Solo activos y que hayan tenido aumento.
--- Nota: esta vista esta vacía pero puede que sea error nuestro
+-- Parece que no hay activos con aumento. Mostramos todos los activos (van a tener aumento = 0).
 -- SELECT * FROM SQLeros.BI_PagoAlq WHERE bi_pagoAlq_estado = 'Activo'
 -- SELECT PAGO_ALQUILER_IMPORTE FROM gd_esquema.Maestra WHERE ALQUILER_ESTADO = 'Activo'
 

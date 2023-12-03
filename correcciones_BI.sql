@@ -167,7 +167,8 @@ GO
 CREATE TABLE SQLeros.BI_Anuncio(
 	bi_anu_codigo INT IDENTITY PRIMARY KEY,
 	bi_anu_tiempo_pub INT,
-	bi_anu_precio_promedio DECIMAL(12,2),
+	bi_anu_precio_total DECIMAL(12,2),
+	bi_anu_cantidad INT,
 	bi_anu_tipo_op INT,
 	bi_anu_tipo_moneda INT,
 	bi_anu_ambientes INT,
@@ -250,6 +251,9 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID('SQLeros.BI_f_rango_etario', 'FN') IS NOT NULL
+	DROP FUNCTION SQLeros.BI_f_rango_etario
+GO
 CREATE FUNCTION SQLeros.BI_f_rango_etario (@fecha_nacimiento SMALLDATETIME)
 RETURNS INT
 AS
@@ -259,19 +263,19 @@ BEGIN
 	SET @edad = DATEDIFF(DAY, @fecha_nacimiento, CAST (GETDATE() AS SMALLDATETIME))
 	IF CAST(@edad AS DECIMAL(12,2)) < 25
 	BEGIN
-		SELECT @rango = rangoetario_codigo FROM SQLeros.BI_RangoEtario WHERE rangoetario_descripcion = '<25'
+		SELECT @rango = bi_rangoetario_codigo FROM SQLeros.BI_RangoEtario WHERE bi_rangoetario_descripcion = '<25'
 	END
 	ELSE IF CAST(@edad AS DECIMAL(12,2)) >= 25 AND CAST(@edad AS DECIMAL(12,2)) <25
 	BEGIN
-		SELECT @rango = rangoetario_codigo FROM SQLeros.BI_RangoEtario WHERE rangoetario_descripcion = '25-35'
+		SELECT @rango = bi_rangoetario_codigo FROM SQLeros.BI_RangoEtario WHERE bi_rangoetario_descripcion = '25-35'
 	END
 	ELSE IF CAST(@edad AS DECIMAL(12,2)) >= 35 AND CAST(@edad AS DECIMAL(12,2)) < 50
 	BEGIN
-		SELECT @rango = rangoetario_codigo FROM SQLeros.BI_RangoEtario WHERE rangoetario_descripcion = '35-50'
+		SELECT @rango = bi_rangoetario_codigo FROM SQLeros.BI_RangoEtario WHERE bi_rangoetario_descripcion = '35-50'
 	END
 	ELSE IF CAST(@edad AS DECIMAL(12,2)) >= 50
 	BEGIN
-		SELECT @edad = rangoetario_codigo FROM SQLeros.BI_RangoEtario WHERE rangoetario_descripcion = '>50'
+		SELECT @edad = bi_rangoetario_codigo FROM SQLeros.BI_RangoEtario WHERE bi_rangoetario_descripcion = '>50'
 	END
 	RETURN @edad
 END
@@ -443,7 +447,6 @@ BEGIN
 END
 GO
 
-BI_MigrarAnuncio
 --Procedures para migrar los hechos
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarAnuncio')
 	DROP PROCEDURE SQLeros.BI_MigrarAnuncio
@@ -451,10 +454,10 @@ GO
 CREATE PROCEDURE SQLeros.BI_MigrarAnuncio
 AS
 BEGIN
-	INSERT INTO SQLeros.BI_Anuncio(bi_anu_ambientes, bi_anu_duracion_promedio, bi_anu_precio_promedio, bi_anu_rango_m2, bi_anu_tiempo_pub, bi_anu_tipo_inmueble, bi_anu_tipo_moneda, bi_anu_tipo_op, bi_anu_ubicacion)
+	INSERT INTO SQLeros.BI_Anuncio(bi_anu_ambientes, bi_anu_duracion_promedio, bi_anu_precio_total, bi_anu_cantidad, bi_anu_rango_m2, bi_anu_tiempo_pub, bi_anu_tipo_inmueble, bi_anu_tipo_moneda, bi_anu_tipo_op, bi_anu_ubicacion)
 	SELECT inm_ambientes,
 	AVG(DATEDIFF(DAY, anu_fecha_pub, anu_fecha_fin)),
-	AVG(anu_precio), SQLeros.BI_f_rango_superficie(inm_superficie),
+	SUM(anu_precio),COUNT(*) , SQLeros.BI_f_rango_superficie(inm_superficie),
 	(SELECT TOP 1 bi_tiempo_codigo FROM SQLeros.BI_Tiempo WHERE
 	bi_tiempo_year = YEAR(anu_fecha_pub) AND bi_tiempo_month = MONTH(anu_fecha_pub)),
 	inm_tipo, anu_moneda, anu_tipo_op, inm_ubicacion
@@ -511,11 +514,14 @@ GO
 
 --Creación de vistas
 /*VISTA 1*/
+IF OBJECT_ID('SQLeros.BI_DuracionPromedioDeAnuncios', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_DuracionPromedioDeAnuncios
+GO
 CREATE VIEW SQLeros.BI_DuracionPromedioDeAnuncios AS
-SELECT * /* bi_anu_duracion_promedio AS [Duración promedio en días],
+SELECT bi_anu_duracion_promedio AS [Duración promedio en días],
 bi_tipooperacion_descripcion AS [Tipo de operación],
 bi_barrio_descripcion AS [Barrio],
-bi_ambientes_cantidad AS [Ambientes] */
+bi_ambientes_cantidad AS [Ambientes]
 FROM SQLeros.BI_Anuncio
 JOIN SQLeros.BI_TipoOperacion ON bi_tipooperacion_codigo = bi_anu_tipo_op
 JOIN SQLeros.BI_Ubicacion ON bi_ubicacion_codigo = bi_anu_ubicacion
@@ -524,12 +530,19 @@ JOIN SQLeros.BI_Ambientes ON bi_ambientes_codigo = bi_anu_ambientes
 GROUP BY bi_anu_duracion_promedio, bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_barrio_codigo, bi_barrio_descripcion, bi_ambientes_codigo, bi_ambientes_cantidad
 GO
 
+/*VISTA 2*/
+CREATE VIEW SQLeros.BI_PrecioPromedioDeInmuebles AS
+SELECT *
+FROM SQLeros.BI_Anuncio
+
 /*VISTA 4*/
 -- Nota: Esta vista esta vacía dado que no hay datos que cumplan la condicion.
 -- SELECT * FROM SQLeros.PagoAlquiler WHERE pagoalq_fecha > pagoalq_vencimiento
 -- SELECT * FROM gd_esquema.Maestra WHERE PAGO_ALQUILER_FECHA > PAGO_ALQUILER_FECHA_VENCIMIENTO
 -- Ninguna de esas querys devuelve nada.
-
+IF OBJECT_ID('SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler
+GO
 CREATE VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler AS
 SELECT bi_tiempo_year Año, bi_tiempo_month Mes,
 	100 *

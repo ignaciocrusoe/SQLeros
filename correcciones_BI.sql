@@ -159,7 +159,6 @@ GO
 CREATE TABLE SQLeros.BI_TipoMoneda(
 	bi_moneda_codigo INT PRIMARY KEY,
 	bi_moneda_nombre VARCHAR(20),
-	bi_moneda_eq_pesos decimal(8,2) --Puede ser que no necesitemos el equivalente en pesos
 )
 GO
 
@@ -338,6 +337,17 @@ AS
 BEGIN
 	INSERT INTO SQLeros.BI_TipoOperacion (bi_tipooperacion_codigo, bi_tipooperacion_descripcion)
 	SELECT tipooperacion_codigo, tipooperacion_descripcion FROM SQLeros.TipoOperacion
+END
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarTipoMoneda')
+	DROP PROCEDURE SQLeros.BI_MigrarTipoMoneda
+GO
+CREATE PROCEDURE SQLeros.BI_MigrarTipoMoneda
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_TipoMoneda(bi_moneda_codigo, bi_moneda_nombre)
+	SELECT moneda_codigo, moneda_nombre FROM SQLeros.Moneda
 END
 GO
 
@@ -548,12 +558,14 @@ CREATE VIEW SQLeros.BI_PrecioPromedioDeAnunciosDeInmuebles AS
 SELECT SUM(bi_anu_precio_total) / SUM(bi_anu_cantidad) AS [Precio promedio],
 bi_tipooperacion_descripcion AS [Tipo de operación],
 bi_tipoinmueble_descripcion AS [Tipo de inmueble],
-bi_rangom2_descripcion AS [Rango M2]
+bi_rangom2_descripcion AS [Rango M2],
+bi_moneda_nombre AS [Moneda]
 FROM SQLeros.BI_Anuncio
 JOIN SQLeros.BI_TipoOperacion ON bi_tipooperacion_codigo = bi_anu_tipo_op
 JOIN SQLeros.BI_TipoInmueble ON bi_tipoinmueble_codigo = bi_anu_tipo_inmueble
 JOIN SQLeros.BI_RangoM2 ON bi_rangom2_codigo = bi_anu_rangom2
-GROUP BY bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_tipoinmueble_codigo, bi_tipoinmueble_descripcion, bi_rangom2_codigo, bi_rangom2_descripcion
+JOIN SQLeros.BI_TipoMoneda ON bi_moneda_codigo = bi_anu_tipo_moneda
+GROUP BY bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_tipoinmueble_codigo, bi_tipoinmueble_descripcion, bi_rangom2_codigo, bi_rangom2_descripcion, bi_moneda_codigo, bi_moneda_nombre
 GO
 
 /*VISTA 4*/
@@ -606,6 +618,7 @@ BEGIN TRANSACTION
 		EXEC SQLeros.BI_MigrarTipoOperacion
 		EXEC SQLeros.BI_MigrarTipoInmueble
 		EXEC SQLeros.BI_MigrarAmbientes
+		EXEC SQLeros.BI_MigrarTipoMoneda
 
 		--Migración de los hechos
 		EXEC SQLeros.BI_MigrarPagoAlquiler

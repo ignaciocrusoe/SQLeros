@@ -175,7 +175,7 @@ CREATE TABLE SQLeros.BI_Anuncio(
 	bi_anu_ubicacion INT,
 	bi_anu_duracion_promedio INT, --En días
 	bi_anu_tipo_inmueble INT,
-	bi_anu_rango_m2 INT
+	bi_anu_rangom2 INT
 )
 GO
 
@@ -341,6 +341,16 @@ BEGIN
 END
 GO
 
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarTipoInmueble')
+	DROP PROCEDURE SQLeros.BI_MigrarTipoInmueble
+GO
+CREATE PROCEDURE SQLeros.BI_MigrarTipoInmueble
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_TipoInmueble(bi_tipoinmueble_codigo, bi_tipoinmueble_descripcion)
+	SELECT tipoinmueble_codigo, tipoinmueble_descripcion FROM SQLeros.TipoInmueble
+END
+GO
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarAmbientes')
 	DROP PROCEDURE SQLeros.BI_MigrarAmbientes
 GO
@@ -454,7 +464,7 @@ GO
 CREATE PROCEDURE SQLeros.BI_MigrarAnuncio
 AS
 BEGIN
-	INSERT INTO SQLeros.BI_Anuncio(bi_anu_ambientes, bi_anu_duracion_promedio, bi_anu_precio_total, bi_anu_cantidad, bi_anu_rango_m2, bi_anu_tiempo_pub, bi_anu_tipo_inmueble, bi_anu_tipo_moneda, bi_anu_tipo_op, bi_anu_ubicacion)
+	INSERT INTO SQLeros.BI_Anuncio(bi_anu_ambientes, bi_anu_duracion_promedio, bi_anu_precio_total, bi_anu_cantidad, bi_anu_rangom2, bi_anu_tiempo_pub, bi_anu_tipo_inmueble, bi_anu_tipo_moneda, bi_anu_tipo_op, bi_anu_ubicacion)
 	SELECT inm_ambientes,
 	AVG(DATEDIFF(DAY, anu_fecha_pub, anu_fecha_fin)),
 	SUM(anu_precio),COUNT(*) , SQLeros.BI_f_rango_superficie(inm_superficie),
@@ -531,9 +541,20 @@ GROUP BY bi_anu_duracion_promedio, bi_tipooperacion_codigo, bi_tipooperacion_des
 GO
 
 /*VISTA 2*/
-CREATE VIEW SQLeros.BI_PrecioPromedioDeInmuebles AS
-SELECT *
+IF OBJECT_ID('SQLeros.BI_PrecioPromedioDeAnunciosDeInmuebles', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_PrecioPromedioDeAnunciosDeInmuebles
+GO
+CREATE VIEW SQLeros.BI_PrecioPromedioDeAnunciosDeInmuebles AS
+SELECT SUM(bi_anu_precio_total) / SUM(bi_anu_cantidad) AS [Precio promedio],
+bi_tipooperacion_descripcion AS [Tipo de operación],
+bi_tipoinmueble_descripcion AS [Tipo de inmueble],
+bi_rangom2_descripcion AS [Rango M2]
 FROM SQLeros.BI_Anuncio
+JOIN SQLeros.BI_TipoOperacion ON bi_tipooperacion_codigo = bi_anu_tipo_op
+JOIN SQLeros.BI_TipoInmueble ON bi_tipoinmueble_codigo = bi_anu_tipo_inmueble
+JOIN SQLeros.BI_RangoM2 ON bi_rangom2_codigo = bi_anu_rangom2
+GROUP BY bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_tipoinmueble_codigo, bi_tipoinmueble_descripcion, bi_rangom2_codigo, bi_rangom2_descripcion
+GO
 
 /*VISTA 4*/
 -- Nota: Esta vista esta vacía dado que no hay datos que cumplan la condicion.
@@ -574,6 +595,7 @@ GO
 --Migración de Tablas
 BEGIN TRANSACTION
 	BEGIN TRY
+		--Migración de las dimensiones
 		EXEC SQLeros.BI_MigrarTiempo
 		EXEC SQLeros.BI_MigrarBarrio
 		EXEC SQLeros.BI_MigrarLocalidad
@@ -581,6 +603,11 @@ BEGIN TRANSACTION
 		EXEC SQLeros.BI_MigrarUbicacion
 		EXEC SQLeros.BI_InsertarRangoEtario
 		EXEC SQLeros.BI_InsertarRangoM2
+		EXEC SQLeros.BI_MigrarTipoOperacion
+		EXEC SQLeros.BI_MigrarTipoInmueble
+		EXEC SQLeros.BI_MigrarAmbientes
+
+		--Migración de los hechos
 		EXEC SQLeros.BI_MigrarPagoAlquiler
 		EXEC SQLeros.BI_AumentoPagoAlq
 		EXEC SQLeros.BI_MigrarAnuncio

@@ -181,13 +181,11 @@ GO
 CREATE TABLE SQLeros.BI_Alquiler(
 	bi_alq_codigo INT IDENTITY PRIMARY KEY,
 	bi_alq_tiempo_inicio INT,
-	bi_alq_tiempo_fin INT,
-	bi_alq_cant_periodos INT,
-	bi_alq_depositio DECIMAL(12,2),
-	bi_alq_comision_promedio DECIMAL(12,2),
-	bi_alq_gastos DECIMAL(12,2),
-	bi_alq_estado INT,
-	bi_alq_precio DECIMAL(12,2),
+	bi_alq_incremento_total DECIMAL(12,2),
+	bi_alq_comision_total DECIMAL(12,2),
+	bi_alq_precio_total DECIMAL(12,2),
+	bi_alq_cantidad INT,
+	bi_alq_ubicacion_inmueble INT,
 	bi_aql_rengoetario_agente INT,
 	bi_aql_rengoetario_inquilino INT,
 )
@@ -259,12 +257,12 @@ AS
 BEGIN
 	DECLARE @rango INT
 	DECLARE @edad INT
-	SET @edad = DATEDIFF(DAY, @fecha_nacimiento, CAST (GETDATE() AS SMALLDATETIME))
+	SET @edad = DATEDIFF(YEAR, @fecha_nacimiento, CAST (GETDATE() AS SMALLDATETIME))
 	IF CAST(@edad AS DECIMAL(12,2)) < 25
 	BEGIN
 		SELECT @rango = bi_rangoetario_codigo FROM SQLeros.BI_RangoEtario WHERE bi_rangoetario_descripcion = '<25'
 	END
-	ELSE IF CAST(@edad AS DECIMAL(12,2)) >= 25 AND CAST(@edad AS DECIMAL(12,2)) <25
+	ELSE IF CAST(@edad AS DECIMAL(12,2)) >= 25 AND CAST(@edad AS DECIMAL(12,2)) <35
 	BEGIN
 		SELECT @rango = bi_rangoetario_codigo FROM SQLeros.BI_RangoEtario WHERE bi_rangoetario_descripcion = '25-35'
 	END
@@ -274,9 +272,9 @@ BEGIN
 	END
 	ELSE IF CAST(@edad AS DECIMAL(12,2)) >= 50
 	BEGIN
-		SELECT @edad = bi_rangoetario_codigo FROM SQLeros.BI_RangoEtario WHERE bi_rangoetario_descripcion = '>50'
+		SELECT @rango = bi_rangoetario_codigo FROM SQLeros.BI_RangoEtario WHERE bi_rangoetario_descripcion = '>50'
 	END
-	RETURN @edad
+	RETURN @rango
 END
 GO
 
@@ -314,7 +312,7 @@ BEGIN
 			JOIN SQLeros.PagoAlquiler AS P2 ON P1.pagoalq_alquiler = P2.pagoalq_alquiler
 		WHERE P1.pagoalq_codigo = @pagoAlquiler AND P2.pagoalq_nro_periodo = P1.pagoalq_nro_periodo - 1
 		ORDER BY P2.pagoalq_fecha DESC
-	RETURN ISNULL(@monto, -1)
+	RETURN ISNULL(@monto, 0)
 END
 GO
 --Procedures para migrar las dimensiones
@@ -486,10 +484,30 @@ BEGIN
 	GROUP BY inm_ambientes, inm_tipo, anu_moneda, anu_tipo_op, inm_ubicacion, SQLeros.BI_f_rango_superficie(inm_superficie), YEAR(anu_fecha_pub), MONTH(anu_fecha_pub)
 END
 
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarAlquiler')
+	DROP PROCEDURE SQLeros.BI_MigrarAlquiler
+GO
+CREATE PROCEDURE SQLeros.BI_MigrarAlquiler
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_Alquiler (bi_alq_cantidad, bi_alq_comision_total, bi_alq_incremento_total, bi_alq_precio_total, bi_alq_tiempo_inicio, bi_alq_ubicacion_inmueble, bi_aql_rengoetario_agente, bi_aql_rengoetario_inquilino)
+	SELECT COUNT(*), SUM(alq_comision), SUM(alq_precio) - SUM(SQLeros.BI_f_MontoPagoAnterior(alq_codigo)),
+	SUM(alq_precio), bi_tiempo_codigo, inm_ubicacion, SQLeros.BI_f_rango_etario(PA.pers_fecha_nac), SQLeros.BI_f_rango_etario(PINQ.pers_fecha_nac)
+	FROM SQLeros.Alquiler
+	JOIN SQLeros.BI_Tiempo ON bi_tiempo_year = YEAR(alq_fecha_inicio) AND bi_tiempo_month = MONTH(alq_fecha_inicio)
+	JOIN SQLeros.Anuncio ON anu_codigo = alq_anuncio
+	JOIN SQLeros.Inmueble ON inm_codigo = anu_inmueble
+	JOIN SQLeros.Persona PA ON PA.pers_codigo = anu_agente
+	JOIN SQLeros.InquilinoPorAlquiler ON inquilinoporalquiler_alquiler = alq_codigo
+	JOIN SQLeros.Persona PINQ ON PINQ.pers_codigo = inquilinoporalquiler_inquilino
+	GROUP BY bi_tiempo_codigo, YEAR(alq_fecha_inicio), MONTH(alq_fecha_inicio), inm_ubicacion, SQLeros.BI_f_rango_etario(PA.pers_fecha_nac), SQLeros.BI_f_rango_etario(PINQ.pers_fecha_nac)
+
+END
+GO
+
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarPagoAlquiler')
 	DROP PROCEDURE SQLeros.BI_MigrarPagoAlquiler
 GO
-
 CREATE PROCEDURE SQLeros.BI_MigrarPagoAlquiler
 AS
 BEGIN

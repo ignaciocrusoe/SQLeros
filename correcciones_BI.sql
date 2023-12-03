@@ -62,9 +62,26 @@ IF OBJECT_ID('SQLeros.BI_Venta', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_Venta
 GO
 
-IF OBJECT_ID('SQLeros.BI_PagoAlquiler', 'U') IS NOT NULL
-	DROP TABLE SQLeros.BI_PagoAlquiler
+IF OBJECT_ID('SQLeros.BI_PagoAlq', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_PagoAlq
 GO
+
+-- Borro funciones
+IF OBJECT_ID('SQLeros.BI_ObtenerCuatrimestre', 'FN') IS NOT NULL
+	DROP FUNCTION SQLeros.BI_ObtenerCuatrimestre
+GO
+IF OBJECT_ID('SQLeros.BI_MontoPagoAnterior', 'FN') IS NOT NULL
+	DROP FUNCTION SQLeros.BI_MontoPagoAnterior
+GO
+
+-- Borro vistas
+IF OBJECT_ID('SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler
+GO
+IF OBJECT_ID('SQLeros.BI_PorcentajeIncrementoValorAlquiler', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler
+GO
+
 
 --Dimensiones
 CREATE TABLE SQLeros.BI_Tiempo(
@@ -189,19 +206,55 @@ CREATE TABLE SQLeros.BI_Venta(
 )
 GO
 
-CREATE TABLE SQLeros.BI_PagoAlquiler(
-	bi_pagoalq_codigo INT PRIMARY KEY,
-	bi_pagoalq_tiempo INT,
-	bi_pagoalq_nro_periodo INT,
-	bi_pagoalq_descripcion_periodo VARCHAR(100),
-	bi_pagoalq_tiempo_inicio INT,
-	bi_pagoalq_tiempo_fin INT,
-	bi_pagoalq_importe DECIMAL(12,2),
-	bi_pagoalq_medio INT,
-	bi_pagoalq_vencimiento INT
+CREATE TABLE SQLeros.BI_PagoAlq(
+	bi_pagoAlq_codigo INT IDENTITY PRIMARY KEY,
+	bi_pagoAlq_tiempo INT,
+	bi_pagoAlq_porcentajeInclumientoPago INT,
+	bi_pagoAlq_valorPromedio INT,
+	bi_pagoAlq_estaActivo BIT,	-- Esto sería dimensión?
+	bi_pagoAlq_pagaATiempo BIT,	-- dimensión?
+	bi_pagoAlq_cantidadPagos INT,
+	bi_pagoAlq_totalPagado INT,
+	bi_pagoAlq_porcentajeAumentoPago INT -- Solo para los alquileres activos que hayan aumentado desde el último pago
 )
 GO
 
+-- Funciones
+
+CREATE FUNCTION SQLeros.BI_ObtenerCuatrimestre(@mes INT)
+RETURNS INT
+AS
+BEGIN
+	DECLARE @cuatrimestre INT
+	IF (@mes > 0 AND @mes <= 4)
+	BEGIN
+		SET @cuatrimestre = 1
+	END
+	ELSE IF (@mes > 4 AND @mes <= 8)
+	BEGIN
+		SET @cuatrimestre = 2
+	END
+	ELSE IF (@mes > 8 AND @mes <= 12)
+	BEGIN
+		SET @cuatrimestre = 3
+	END
+	RETURN @cuatrimestre
+END
+GO
+
+CREATE FUNCTION SQLeros.BI_MontoPagoAnterior(@pagoAlquiler INT)
+RETURNS DECIMAL (12, 2)
+AS
+BEGIN
+	DECLARE @monto DECIMAL(12, 2)
+	SELECT TOP 1 @monto = P2.pagoalq_importe
+		FROM SQLeros.PagoAlquiler AS P1
+			JOIN SQLeros.PagoAlquiler AS P2 ON P1.pagoalq_alquiler = P2.pagoalq_alquiler
+		WHERE P1.pagoalq_codigo = @pagoAlquiler AND P2.pagoalq_fecha < P1.pagoalq_fecha
+		ORDER BY P2.pagoalq_fecha DESC
+	RETURN ISNULL(@monto, -1)
+END
+GO
 --Procedures para migrar las dimensiones
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarBarrio')
 	DROP PROCEDURE SQLeros.BI_MigrarBarrio
@@ -260,7 +313,7 @@ BEGIN
 END
 GO
 
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_InsertarRangoM2"')
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_InsertarRangoM2')
 	DROP PROCEDURE SQLeros.BI_InsertarRangoM2
 GO
 CREATE PROCEDURE SQLeros.BI_InsertarRangoM2
@@ -273,13 +326,113 @@ BEGIN
 	INSERT INTO SQLeros.BI_RangoM2 (bi_rangom2_descripcion) VALUES ('>100')
 END
 GO
---Procedures para migrar los hechos
 
+-- Carga de dimensión tiempo
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarTiempo')
+	DROP PROCEDURE SQLeros.BI_MigrarTiempo
+GO
+CREATE PROCEDURE SQLeros.BI_MigrarTiempo
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_Tiempo(bi_tiempo_cuatrimestre, bi_tiempo_month, bi_tiempo_year)
+	SELECT distinct SQLeros.BI_ObtenerCuatrimestre(MONTH(pagoalq_fecha)), MONTH(pagoalq_fecha), YEAR(pagoalq_fecha) FROM SQLeros.PagoAlquiler
+	UNION
+	SELECT distinct SQLeros.BI_ObtenerCuatrimestre(MONTH(pagoalq_fecha_inicio)), MONTH(pagoalq_fecha_inicio), YEAR(pagoalq_fecha_inicio) FROM SQLeros.PagoAlquiler
+	UNION
+	SELECT distinct SQLeros.BI_ObtenerCuatrimestre(MONTH(pagoalq_vencimiento)), MONTH(pagoalq_vencimiento), YEAR(pagoalq_vencimiento) FROM SQLeros.PagoAlquiler
+	-- Union demás fechas
+END
+GO
+
+
+--Procedures para migrar los hechos
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarPagoAlquileres')
+	DROP PROCEDURE SQLeros.BI_MigrarPagoAlquileres
+GO
+
+CREATE PROCEDURE SQLeros.BI_MigrarPagoAlquileres
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_PagoAlq (bi_pagoAlq_tiempo, bi_pagoAlq_valorPromedio, bi_pagoAlq_estaActivo, bi_pagoAlq_totalPagado, bi_pagoAlq_cantidadPagos, bi_pagoAlq_pagaATiempo)
+	SELECT bi_tiempo_codigo, AVG(pagoalq_importe), 
+		CASE WHEN estadoalquiler_descripcion = 'Activo' THEN 1 ELSE 0 END, SUM(pagoalq_importe), COUNT(*),
+		CASE WHEN pagoalq_fecha > pagoalq_vencimiento THEN 0 ELSE 1 END
+	FROM SQLeros.PagoAlquiler
+		JOIN SQLeros.BI_Tiempo ON YEAR(pagoalq_fecha) = bi_tiempo_year AND MONTH(pagoalq_fecha) = bi_tiempo_month	-- Se puede evitar si la key fuera year+month
+		JOIN SQLeros.Alquiler ON pagoalq_alquiler = alq_codigo
+		JOIN SQLeros.EstadoAlquiler ON alq_estado = estadoalquiler_codigo
+	GROUP BY YEAR(pagoalq_fecha), bi_tiempo_codigo, estadoalquiler_codigo, estadoalquiler_descripcion, CASE WHEN pagoalq_fecha > pagoalq_vencimiento THEN 0 ELSE 1 END
+END
+GO
+
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_AumentoPagoAlq')
+	DROP PROCEDURE SQLeros.BI_AumentoPagoAlq
+GO
+
+CREATE PROCEDURE SQLeros.BI_AumentoPagoAlq -- Solo para los activos que hayan aumentado
+AS
+BEGIN
+	UPDATE SQLeros.BI_PagoAlq
+	SET bi_pagoAlq_porcentajeAumentoPago =
+		ISNULL(
+			(SELECT AVG(SQLeros.BI_MontoPagoAnterior(pagoalq_codigo) / pagoalq_importe)
+			FROM SQLeros.PagoAlquiler AS P1
+				JOIN SQLeros.Alquiler ON pagoalq_alquiler = alq_codigo
+				JOIN SQLeros.EstadoAlquiler ON alq_estado = estadoalquiler_codigo
+			WHERE bi_tiempo_year = YEAR(pagoalq_fecha) AND bi_tiempo_month = MONTH(pagoalq_fecha) AND
+				estadoalquiler_descripcion = 'Activo' AND pagoalq_importe >
+				(SELECT TOP 1 P2.pagoalq_importe
+				FROM SQLeros.PagoAlquiler AS P2
+				WHERE P2.pagoalq_alquiler = P1.pagoalq_alquiler AND P2.pagoalq_fecha < P1.pagoalq_fecha
+				ORDER BY P2.pagoalq_fecha DESC))
+		, 0)
+	FROM SQLeros.BI_PagoAlq
+		JOIN BI_Tiempo ON bi_pagoAlq_tiempo = bi_tiempo_codigo
+	WHERE bi_pagoAlq_estaActivo = 1
+END
+GO
 --Creación de vistas
+/*VISTA 4*/
+-- Nota: Esta vista esta vacía dado que no hay datos que cumplan la condicion.
+-- SELECT * FROM SQLeros.PagoAlquiler WHERE pagoalq_fecha > pagoalq_vencimiento
+-- SELECT * FROM gd_esquema.Maestra WHERE PAGO_ALQUILER_FECHA > PAGO_ALQUILER_FECHA_VENCIMIENTO
+-- Ninguna de esas querys devuelve nada.
+
+CREATE VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler AS
+SELECT bi_tiempo_year Año, bi_tiempo_month Mes,
+	100 *
+	ISNULL(
+		(SELECT SUM(P1.bi_pagoAlq_cantidadPagos)
+		FROM SQLeros.BI_PagoAlq AS P1
+		WHERE P1.bi_pagoAlq_pagaATiempo = 0 AND P1.bi_pagoAlq_tiempo = P2.bi_pagoAlq_tiempo)
+	, 0)
+	/ SUM(bi_pagoAlq_cantidadPagos) Porcentaje
+	FROM SQLeros.BI_PagoAlq AS P2
+	JOIN SQLeros.BI_Tiempo ON bi_pagoAlq_tiempo = bi_tiempo_codigo
+GROUP BY bi_pagoAlq_tiempo, bi_tiempo_year, bi_tiempo_month
+GO
+
+/*VISTA 5*/
+-- Solo activos y que hayan tenido aumento.
+-- Nota: esta vista esta vacía pero puede que sea error nuestro
+-- SELECT * FROM SQLeros.BI_PagoAlq WHERE bi_pagoAlq_estado = 'Activo'
+-- SELECT PAGO_ALQUILER_IMPORTE FROM gd_esquema.Maestra WHERE ALQUILER_ESTADO = 'Activo'
+
+CREATE VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler
+AS
+SELECT bi_tiempo_year, bi_tiempo_month, bi_pagoAlq_porcentajeAumentoPago
+FROM SQLeros.BI_PagoAlq
+	JOIN SQLeros.BI_Tiempo ON bi_pagoAlq_tiempo = bi_tiempo_codigo
+WHERE bi_pagoAlq_estaActivo = 1 AND bi_pagoAlq_porcentajeAumentoPago IS NOT NULL
+GO
 
 --Migración de Tablas
 BEGIN TRANSACTION
 	BEGIN TRY
+		EXEC SQLeros.BI_MigrarTiempo
+		EXEC SQLeros.BI_MigrarPagoAlquileres
+		EXEC SQLeros.BI_AumentoPagoAlq
+
 		EXEC SQLeros.BI_MigrarBarrio
 		EXEC SQLeros.BI_MigrarLocalidad
 		EXEC SQLeros.BI_MigrarProvincia
@@ -290,3 +443,9 @@ BEGIN TRANSACTION
 	BEGIN CATCH
 		ROLLBACK TRANSACTION;
 	END CATCH
+
+-- Selects de las vistas
+/*
+SELECT * FROM SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler		-- Vista 4
+SELECT * FROM SQLeros.BI_PorcentajeIncrementoValorAlquiler			-- Vista 5
+*/

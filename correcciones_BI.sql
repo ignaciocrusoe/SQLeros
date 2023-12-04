@@ -322,7 +322,7 @@ BEGIN
 	DECLARE @vencimiento SMALLDATETIME, @fecha_de_pago SMALLDATETIME
 	SELECT @fecha_de_pago = pagoalq_fecha, @vencimiento = pagoalq_vencimiento FROM SQLeros.PagoAlquiler
 	WHERE pagoalq_codigo = @pago
-	IF (@fecha_de_pago > @vencimiento)
+	IF (@vencimiento > @fecha_de_pago)
 	BEGIN
 		SET @r_value = 1
 	END
@@ -682,24 +682,18 @@ GO
 -- SELECT * FROM SQLeros.PagoAlquiler WHERE pagoalq_fecha > pagoalq_vencimiento
 -- SELECT * FROM gd_esquema.Maestra WHERE PAGO_ALQUILER_FECHA > PAGO_ALQUILER_FECHA_VENCIMIENTO
 -- Ninguna de esas querys devuelve nada.
-/*
 IF OBJECT_ID('SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler
 GO
 CREATE VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler AS
-SELECT bi_tiempo_year Año, bi_tiempo_month Mes,
-	100 *
-	ISNULL(
-		(SELECT SUM(P1.bi_pagoalq_cantidad_pagos)
-		FROM SQLeros.BI_PagoAlquiler AS P1
-		WHERE P1.bi_pagoalq_paga_a_tiempo = 0 AND P1.bi_pagoAlq_tiempo = P2.bi_pagoAlq_tiempo)
-	, 0)
-	/ SUM(bi_pagoalq_cantidad_pagos) Porcentaje
-	FROM SQLeros.BI_PagoAlquiler AS P2
-	JOIN SQLeros.BI_Tiempo ON bi_pagoAlq_tiempo = bi_tiempo_codigo
-GROUP BY bi_pagoAlq_tiempo, bi_tiempo_year, bi_tiempo_month
+SELECT SUM(bi_pagoalq_pagos_incumplidos) / SUM(bi_pagoalq_cantidad_pagos) AS [Porcentaje de incumplimiento de pagos],
+bi_tiempo_year AS [Año],
+bi_tiempo_month AS [Month]
+FROM SQLeros.BI_PagoAlquiler
+JOIN SQLeros.BI_Tiempo ON YEAR(bi_pagoalq_tiempo) = bi_tiempo_year AND MONTH(bi_pagoalq_tiempo) = bi_tiempo_month
+GROUP BY bi_tiempo_year, bi_tiempo_month
 GO
-*/
+
 /*VISTA 5*/
 -- Parece que no hay activos con aumento. Mostramos todos los activos (van a tener aumento = 0).
 -- SELECT * FROM SQLeros.BI_PagoAlquiler WHERE bi_pagoalq_estado = 'Activo'

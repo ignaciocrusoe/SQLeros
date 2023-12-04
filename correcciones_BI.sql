@@ -674,6 +674,26 @@ FROM SQLeros.BI_PagoAlquiler
 WHERE bi_pagoalq_alquiler_esta_activo = 1 AND bi_pagoalq_porcentaje_aumento_pago IS NOT NULL
 GO
 
+/*VISTA 6*/
+IF OBJECT_ID('SQLeros.BI_PrecioPromedioDeM2', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_PrecioPromedioDeM2
+GO
+CREATE VIEW SQLeros.BI_PrecioPromedioDeM2 AS
+SELECT SUM(bi_operacion_precio_total) / SUM(bi_operacion_cantidad) AS [Precio Promedio],
+bi_tipoinmueble_descripcion AS [Tipo de inmueble],
+bi_localidad_descripcion AS [Localidad],
+bi_tiempo_year AS [Año],
+bi_tiempo_cuatrimestre AS [Cuatrimestre]
+FROM SQLeros.BI_Operacion
+JOIN SQLeros.BI_TipoInmueble ON bi_tipoinmueble_codigo = bi_operacion_tipo_inmueble
+JOIN SQLeros.BI_Tiempo ON bi_operacion_tiempo_inicio = bi_tiempo_codigo
+JOIN SQLeros.BI_Ubicacion ON bi_ubicacion_codigo = bi_operacion_ubicacion_inmueble
+JOIN SQLeros.BI_Localidad ON bi_localidad_codigo = bi_ubicacion_localidad
+JOIN SQLeros.BI_TipoOperacion ON bi_tipooperacion_codigo = bi_operacion_tipo_operacion
+WHERE bi_tipooperacion_descripcion = 'Tipo Operación Venta'
+GROUP BY bi_tipoinmueble_codigo, bi_tipoinmueble_descripcion, bi_localidad_codigo, bi_localidad_descripcion, bi_tiempo_year, bi_tiempo_cuatrimestre
+GO
+
 /*VISTA 7*/
 IF OBJECT_ID('SQLeros.BI_ValorPromedioDeLaComision', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_ValorPromedioDeLaComision

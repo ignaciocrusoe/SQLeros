@@ -504,7 +504,8 @@ BEGIN
 	JOIN SQLeros.BI_Tiempo ON bi_tiempo_year = YEAR(alq_fecha_inicio) AND bi_tiempo_month = MONTH(alq_fecha_inicio)
 	JOIN SQLeros.Anuncio ON anu_codigo = alq_anuncio
 	JOIN SQLeros.Inmueble ON inm_codigo = anu_inmueble
-	INNER JOIN SQLeros.Persona PA ON PA.pers_codigo = anu_agente
+	JOIN SQLeros.Agente ON agen_codigo = anu_agente
+	INNER JOIN SQLeros.Persona PA ON PA.pers_codigo = agen_persona
 	JOIN SQLeros.InquilinoPorAlquiler ON inquilinoporalquiler_alquiler = alq_codigo
 	JOIN SQLeros.Persona PINQ ON PINQ.pers_codigo = inquilinoporalquiler_inquilino
 	JOIN SQLeros.PagoAlquiler ON pagoalq_alquiler = pagoalq_codigo
@@ -690,38 +691,30 @@ GROUP BY bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_sucur_codigo,
 GO
 
 /*VISTA 8*/	-- Es debatible si nos conviene juntar Alquileres y Ventas en una sola tabla Operacion y que tipoOperacion sea una dimension
-/*
 IF OBJECT_ID('SQLeros.BI_PorcentajeOperacionesConcretadas', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_PorcentajeOperacionesConcretadas
 GO
 CREATE VIEW SQLeros.BI_PorcentajeOperacionesConcretadas
 AS
-SELECT bi_sucur_nombre, bi_rangoetario_descripcion, bi_tiempo_year,
-	100.0 *
-		(
-		ISNULL(
-		(SELECT SUM(bi_venta_cantidad)
-		FROM SQLeros.BI_Venta
-			JOIN SQLeros.BI_Tiempo AS T2 ON bi_venta_tiempo = T2.bi_tiempo_codigo
-		WHERE T2.bi_tiempo_year = T1.bi_tiempo_year AND bi_venta_rengoetario_agente = bi_anu_rangoetario_agente AND bi_venta_sucursal = bi_anu_sucursal
-		GROUP BY T2.bi_tiempo_year, bi_venta_rengoetario_agente, bi_venta_sucursal)
-		, 0)
-		+
-		ISNULL(
-		(SELECT SUM(bi_alq_cantidad)
-		FROM SQLeros.BI_Alquiler
-			JOIN SQLeros.BI_Tiempo AS T2 ON bi_alq_tiempo_inicio = T2.bi_tiempo_codigo
-		WHERE T2.bi_tiempo_year = T1.bi_tiempo_year AND bi_alq_sucursal = bi_anu_sucursal)		-- FALTA AGREGAR RANGO ETARIO EN ALQ Y EN ESTE WHERE
-		, 0)
-	)
-	/ SUM(bi_anu_cantidad) Porcentaje
-FROM SQLeros.BI_Anuncio
-	JOIN SQLeros.BI_Tiempo AS T1 ON bi_anu_tiempo_pub = bi_tiempo_codigo
-	JOIN SQLeros.BI_RangoEtario AS R1 ON bi_anu_rangoetario_agente = bi_rangoetario_codigo
-	JOIN SQLeros.BI_Sucursal ON bi_anu_sucursal = bi_sucur_codigo
-GROUP BY bi_tiempo_year, bi_anu_rangoetario_agente, bi_rangoetario_descripcion, bi_anu_sucursal, bi_sucur_codigo, bi_sucur_nombre
+SELECT 100.0 * SUM(OP.bi_operacion_cantidad) / (SELECT SUM(bi_anu_cantidad) FROM SQLeros.BI_Anuncio
+					JOIN SQLeros.BI_Tiempo TI2 ON TI2.bi_tiempo_codigo = bi_anu_tiempo_pub
+					WHERE bi_anu_sucursal = SU.bi_sucur_codigo
+					AND bi_anu_rangoetario_agente = RE.bi_rangoetario_codigo
+					AND TI2.bi_tiempo_year = TI.bi_tiempo_year
+					AND bi_anu_tipo_op = TIP.bi_tipooperacion_codigo
+					GROUP BY bi_anu_sucursal, YEAR(TI2.bi_tiempo_year), bi_anu_tipo_op, bi_anu_rangoetario_agente) AS [Porcentaje de operaciones concretadas],
+SU.bi_sucur_nombre AS [Sucursal],
+RE.bi_rangoetario_descripcion AS [Rango etario del empleado],
+TI.bi_tiempo_year AS [Año],
+TIP.bi_tipooperacion_descripcion AS [Tipo de operación]
+FROM SQLeros.BI_Operacion OP
+JOIN SQLeros.BI_Sucursal SU ON SU.bi_sucur_codigo = OP.bi_operacion_sucursal
+JOIN SQLeros.BI_RangoEtario RE ON RE.bi_rangoetario_codigo = OP.bi_operacion_rengoetario_agente
+JOIN SQLeros.BI_Tiempo TI ON TI.bi_tiempo_codigo = OP.bi_operacion_tiempo_inicio
+JOIN SQLeros.BI_TipoOperacion TIP ON TIP.bi_tipooperacion_codigo = OP.bi_operacion_tipo_operacion
+GROUP BY SU.bi_sucur_codigo, SU.bi_sucur_nombre, RE.bi_rangoetario_codigo, RE.bi_rangoetario_descripcion, TI.bi_tiempo_yeaR, TIP.bi_tipooperacion_codigo, TIP.bi_tipooperacion_descripcion
 GO
-*/
+
 --Migración de Tablas
 BEGIN TRANSACTION
 	BEGIN TRY

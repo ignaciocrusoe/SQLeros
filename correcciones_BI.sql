@@ -195,7 +195,8 @@ CREATE TABLE SQLeros.BI_Operacion(
 	bi_operacion_sucursal INT,
 	bi_operacion_tipo_operacion INT,
 	bi_operacion_moneda INT,
-	bi_operacion_tipo_inmueble INT
+	bi_operacion_tipo_inmueble INT,
+	bi_operacion_precio_por_m2 DECIMAL(12,2)
 )
 GO
 
@@ -574,8 +575,8 @@ GO
 CREATE PROCEDURE SQLeros.BI_MigrarAlquiler
 AS
 BEGIN
-	INSERT INTO SQLeros.BI_Operacion (bi_operacion_cantidad, bi_operacion_comision_total, bi_operacion_precio_total, bi_operacion_tiempo_inicio, bi_operacion_ubicacion_inmueble, bi_operacion_rangoetario_agente, bi_operacion_rangoetario_cliente, bi_operacion_sucursal, bi_operacion_tipo_operacion, bi_operacion_moneda, bi_operacion_tipo_inmueble)
-	SELECT COUNT(*), SUM(alq_comision), SUM(alq_precio), bi_tiempo_codigo, inm_ubicacion, SQLeros.BI_f_rango_etario(PA.pers_fecha_nac), SQLeros.BI_f_RangoEtarioInquilino(alq_codigo), anu_sucursal, anu_tipo_op, anu_moneda, inm_tipo
+	INSERT INTO SQLeros.BI_Operacion (bi_operacion_cantidad, bi_operacion_comision_total, bi_operacion_precio_total, bi_operacion_tiempo_inicio, bi_operacion_ubicacion_inmueble, bi_operacion_rangoetario_agente, bi_operacion_rangoetario_cliente, bi_operacion_sucursal, bi_operacion_tipo_operacion, bi_operacion_moneda, bi_operacion_tipo_inmueble, bi_operacion_precio_por_m2)
+	SELECT COUNT(*), SUM(alq_comision), SUM(alq_precio), bi_tiempo_codigo, inm_ubicacion, SQLeros.BI_f_rango_etario(PA.pers_fecha_nac), SQLeros.BI_f_RangoEtarioInquilino(alq_codigo), anu_sucursal, anu_tipo_op, anu_moneda, inm_tipo, SUM(alq_precio / inm_superficie)
 	FROM SQLeros.Alquiler
 	JOIN SQLeros.BI_Tiempo ON bi_tiempo_year = YEAR(alq_fecha_inicio) AND bi_tiempo_month = MONTH(alq_fecha_inicio)
 	JOIN SQLeros.Anuncio ON anu_codigo = alq_anuncio
@@ -594,7 +595,7 @@ CREATE PROCEDURE SQLeros.BI_MigrarPagoAlquiler
 AS
 BEGIN
 	INSERT INTO SQLeros.BI_PagoAlquiler (bi_pagoalq_cantidad_pagos_con_aumento, bi_pagoalq_cantidad_pagos, bi_pagoalq_pagos_incumplidos, bi_pagoalq_tiempo, bi_pagoalq_total_pagado, bi_pagoalq_estado_alquiler, bi_pagoalq_incremento_total) 
-	SELECT COUNT(SQLeros.BI_f_HuboAumento(pagoalq_importe, ISNULL(SQLeros.BI_f_MontoPagoAnterior(pagoalq_codigo), pagoalq_importe))), COUNT(*), COUNT(SQLeros.BI_f_NoPagoATiempo(pagoalq_codigo)), bi_tiempo_codigo, SUM(pagoalq_importe) , alq_estado, SUM(pagoalq_importe - ISNULL(SQLeros.BI_f_MontoPagoAnterior(pagoalq_codigo), pagoalq_importe))
+	SELECT COUNT(SQLeros.BI_f_HuboAumento(pagoalq_importe, ISNULL(SQLeros.BI_f_MontoPagoAnterior(pagoalq_codigo), pagoalq_importe))), COUNT(*), COUNT(SQLeros.BI_f_NoPagoATiempo(pagoalq_codigo)), bi_tiempo_codigo, SUM(pagoalq_importe) , alq_estado, SUM((pagoalq_importe - ISNULL(SQLeros.BI_f_MontoPagoAnterior(pagoalq_codigo), pagoalq_importe))/ISNULL(SQLeros.BI_f_MontoPagoAnterior(pagoalq_codigo), pagoalq_importe))
 	FROM SQLeros.PagoAlquiler
 	JOIN SQLeros.BI_Tiempo ON bi_tiempo_year = YEAR(pagoalq_fecha) AND bi_tiempo_month = MONTH(pagoalq_fecha)
 	JOIN SQLeros.Alquiler ON alq_codigo = pagoalq_alquiler
@@ -608,8 +609,8 @@ GO
 CREATE PROCEDURE SQLeros.BI_MigrarVenta
 AS
 BEGIN
-	INSERT INTO SQLeros.BI_Operacion (bi_operacion_cantidad, bi_operacion_comision_total, bi_operacion_precio_total, bi_operacion_tiempo_inicio, bi_operacion_ubicacion_inmueble, bi_operacion_rangoetario_agente, bi_operacion_rangoetario_cliente, bi_operacion_sucursal, bi_operacion_tipo_operacion, bi_operacion_moneda, bi_operacion_tipo_inmueble)
-	SELECT COUNT(*), SUM(venta_comision), SUM(venta_precio), bi_tiempo_codigo, inm_ubicacion, SQLeros.BI_f_rango_etario(PA.pers_fecha_nac), SQLeros.BI_f_rango_etario(COMP.pers_fecha_nac), agen_sucursal, bi_tipooperacion_codigo, venta_moneda, inm_tipo
+	INSERT INTO SQLeros.BI_Operacion (bi_operacion_cantidad, bi_operacion_comision_total, bi_operacion_precio_total, bi_operacion_tiempo_inicio, bi_operacion_ubicacion_inmueble, bi_operacion_rangoetario_agente, bi_operacion_rangoetario_cliente, bi_operacion_sucursal, bi_operacion_tipo_operacion, bi_operacion_moneda, bi_operacion_tipo_inmueble, bi_operacion_precio_por_m2)
+	SELECT COUNT(*), SUM(venta_comision), SUM(venta_precio), bi_tiempo_codigo, inm_ubicacion, SQLeros.BI_f_rango_etario(PA.pers_fecha_nac), SQLeros.BI_f_rango_etario(COMP.pers_fecha_nac), agen_sucursal, bi_tipooperacion_codigo, venta_moneda, inm_tipo, SUM(venta_precio / inm_superficie)
 	FROM SQLeros.Venta
 		JOIN SQLeros.BI_Tiempo ON YEAR(venta_fecha) = bi_tiempo_year AND MONTH(venta_fecha) = bi_tiempo_month
 		JOIN SQLeros.Anuncio ON venta_anuncio = anu_codigo
@@ -720,7 +721,7 @@ IF OBJECT_ID('SQLeros.BI_PrecioPromedioDeM2', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_PrecioPromedioDeM2
 GO
 CREATE VIEW SQLeros.BI_PrecioPromedioDeM2 AS
-SELECT SUM(bi_operacion_precio_total) / SUM(bi_operacion_cantidad) AS [Precio Promedio],
+SELECT SUM(bi_operacion_precio_por_m2) / SUM(bi_operacion_cantidad) AS [Precio Promedio],
 bi_tipoinmueble_descripcion AS [Tipo de inmueble],
 bi_localidad_descripcion AS [Localidad],
 bi_tiempo_year AS [Año],
@@ -827,6 +828,7 @@ SELECT * FROM SQLeros.BI_PrecioPromedioDeAnunciosDeInmuebles		-- Vista 2
 SELECT * FROM SQLeros.BI_BarriosMasElegidos							-- Vista 3
 SELECT * FROM SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler		-- Vista 4
 SELECT * FROM SQLeros.BI_PorcentajeIncrementoValorAlquiler			-- Vista 5
+SELECT * FROM SQLeros.BI_PrecioPromedioDeM2							-- Vista 6
 SELECT * FROM SQLeros.BI_ValorPromedioDeLaComision					-- Vista 7
 SELECT * FROM SQLeros.BI_PorcentajeOperacionesConcretadas			-- Vista 8
 SELECT * FROM SQLeros.BI_MontoTotalDeCierreDeContratos				-- Vista 9

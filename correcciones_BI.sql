@@ -49,6 +49,10 @@ IF OBJECT_ID('SQLeros.BI_TipoMoneda', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_TipoMoneda
 GO
 
+IF OBJECT_ID('SQLeros.BI_EstadoAlquiler', 'U') IS NOT NULL
+	DROP TABLE SQLeros.BI_EstadoAlquiler
+GO
+
 --Borro las tablas de hechos
 IF OBJECT_ID('SQLeros.BI_Anuncio', 'U') IS NOT NULL
 	DROP TABLE SQLeros.BI_Anuncio
@@ -155,6 +159,12 @@ CREATE TABLE SQLeros.BI_TipoMoneda(
 )
 GO
 
+CREATE TABLE SQLeros.BI_EstadoAlquiler(
+	bi_estadoalquiler_codigo INT PRIMARY KEY,
+	bi_estadoalquiler_descripcion VARCHAR(25),
+)
+GO
+
 --Hechos
 CREATE TABLE SQLeros.BI_Anuncio(
 	bi_anu_codigo INT IDENTITY PRIMARY KEY,
@@ -195,6 +205,7 @@ CREATE TABLE SQLeros.BI_PagoAlquiler(
 	bi_pagoalq_total_pagado DECIMAL(12, 2),
 	bi_pagoalq_pagos_incumplidos INT,
 	bi_pagoalq_cantidad_pagos INT,
+	bi_pagoalq_estado_alquiler INT
 )
 GO
 
@@ -400,6 +411,17 @@ BEGIN
 END
 GO
 
+IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarEstadoAlquiler')
+	DROP PROCEDURE SQLeros.BI_MigrarEstadoAlquiler
+GO
+CREATE PROCEDURE SQLeros.BI_MigrarEstadoAlquiler
+AS
+BEGIN
+	INSERT INTO SQLeros.BI_EstadoAlquiler(bi_estadoalquiler_codigo, bi_estadoalquiler_descripcion)
+	SELECT DISTINCT estadoalquiler_codigo, estadoalquiler_descripcion FROM SQLeros.EstadoAlquiler
+END
+GO
+
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarUbicacion')
 	DROP PROCEDURE SQLeros.BI_MigrarUbicacion
 GO
@@ -541,11 +563,12 @@ GO
 CREATE PROCEDURE SQLeros.BI_MigrarPagoAlquiler
 AS
 BEGIN
-	INSERT INTO SQLeros.BI_PagoAlquiler (bi_pagoalq_cantidad_pagos, bi_pagoalq_pagos_incumplidos, bi_pagoalq_tiempo, bi_pagoalq_total_pagado) 
-	SELECT COUNT(*), COUNT(SQLeros.BI_f_NoPagoATiempo(pagoalq_codigo)), bi_tiempo_codigo, SUM(pagoalq_importe) 
+	INSERT INTO SQLeros.BI_PagoAlquiler (bi_pagoalq_cantidad_pagos, bi_pagoalq_pagos_incumplidos, bi_pagoalq_tiempo, bi_pagoalq_total_pagado, bi_pagoalq_estado_alquiler) 
+	SELECT COUNT(*), COUNT(SQLeros.BI_f_NoPagoATiempo(pagoalq_codigo)), bi_tiempo_codigo, SUM(pagoalq_importe) , alq_estado
 	FROM SQLeros.PagoAlquiler
 	JOIN SQLeros.BI_Tiempo ON bi_tiempo_year = YEAR(pagoalq_fecha) AND bi_tiempo_month = MONTH(pagoalq_fecha)
-	GROUP BY bi_tiempo_codigo
+	JOIN SQLeros.Alquiler ON alq_codigo = pagoalq_alquiler
+	GROUP BY bi_tiempo_codigo, alq_estado
 END
 GO
 
@@ -786,6 +809,7 @@ GO
 		EXEC SQLeros.BI_MigrarTipoInmueble
 		EXEC SQLeros.BI_MigrarTipoMoneda
 		EXEC SQLeros.BI_MigrarSucursal
+		EXEC SQLeros.BI_MigrarEstadoAlquiler
 
 		--Migración de los hechos
 		EXEC SQLeros.BI_MigrarAnuncio

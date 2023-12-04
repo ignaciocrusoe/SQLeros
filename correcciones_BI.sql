@@ -614,7 +614,7 @@ JOIN SQLeros.BI_TipoMoneda ON bi_moneda_codigo = bi_anu_tipo_moneda
 GROUP BY bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_tipoinmueble_codigo, bi_tipoinmueble_descripcion, bi_rangom2_codigo, bi_rangom2_descripcion, bi_moneda_codigo, bi_moneda_nombre
 GO
 
-/*VISTA 3*//*
+/*VISTA 3*/
 IF OBJECT_ID('SQLeros.BI_BarriosMasElegidos', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_BarriosMasElegidos
 GO
@@ -624,14 +624,16 @@ bi_rangoetario_descripcion AS [Rango etario],
 bi_tiempo_year AS [Año],
 bi_tiempo_cuatrimestre AS [Cuatrimestre],
 COUNT(*) AS [Cantidad] --Después borrar la cantidad
-FROM SQLeros.BI_Alquiler
-JOIN SQLeros.BI_Ubicacion ON bi_ubicacion_codigo = bi_alq_ubicacion_inmueble
+FROM SQLeros.BI_Operacion
+JOIN SQLeros.BI_Ubicacion ON bi_ubicacion_codigo = bi_operacion_ubicacion_inmueble
 JOIN SQLeros.BI_Barrio ON bi_barrio_codigo = bi_ubicacion_barrio
-JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_alq_tiempo_inicio
-JOIN SQLeros.BI_RangoEtario ON bi_rangoetario_codigo = bi_alq_rengoetario_inquilino
+JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_operacion_tiempo_inicio
+JOIN SQLeros.BI_RangoEtario ON bi_rangoetario_codigo = bi_operacion_rengoetario_cliente
+JOIN SQLeros.BI_TipoOperacion ON bi_tipooperacion_codigo = bi_operacion_tipo_operacion
+HAVING bi_tipooperacion_descripcion = 'Tipo Operación Alquiler Contrato' OR bi_tipooperacion_descripcion = 'Tipo Operación Alquiler Temporario'
 GROUP BY bi_barrio_codigo, bi_barrio_descripcion, bi_rangoetario_codigo, bi_rangoetario_descripcion, bi_tiempo_year, bi_tiempo_cuatrimestre
 ORDER BY COUNT(*) DESC
-GO*/
+GO
 /*VISTA 4*/
 -- Nota: Esta vista esta vacía dado que no hay datos que cumplan la condicion.
 -- SELECT * FROM SQLeros.PagoAlquiler WHERE pagoalq_fecha > pagoalq_vencimiento
@@ -745,8 +747,8 @@ BEGIN TRANSACTION
 -- Selects de las vistas
 /*
 SELECT * FROM SQLeros.BI_DuracionPromedioDeAnuncios					-- Vista 1
-SELECT * FROM SQLeros.BI_BarriosMasElegidos							-- Vista 3
 SELECT * FROM SQLeros.BI_PrecioPromedioDeAnunciosDeInmuebles		-- Vista 2
+SELECT * FROM SQLeros.BI_BarriosMasElegidos							-- Vista 3
 SELECT * FROM SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler		-- Vista 4
 SELECT * FROM SQLeros.BI_PorcentajeIncrementoValorAlquiler			-- Vista 5
 SELECT * FROM SQLeros.BI_PorcentajeOperacionesConcretadas			-- Vista 8

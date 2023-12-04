@@ -185,8 +185,8 @@ CREATE TABLE SQLeros.BI_Alquiler(
 	bi_alq_precio_total DECIMAL(12,2),
 	bi_alq_cantidad INT,
 	bi_alq_ubicacion_inmueble INT,
-	bi_aql_rengoetario_agente INT,	-- aql -> alq
-	bi_aql_rengoetario_inquilino INT, --
+	bi_alq_rengoetario_agente INT,
+	bi_alq_rengoetario_inquilino INT,
 	bi_alq_sucursal INT
 )
 GO
@@ -506,8 +506,8 @@ GO
 CREATE PROCEDURE SQLeros.BI_MigrarAlquiler
 AS
 BEGIN
-	INSERT INTO SQLeros.BI_Alquiler (bi_alq_cantidad, bi_alq_comision_total, bi_alq_incremento_total, bi_alq_precio_total, bi_alq_tiempo_inicio, bi_alq_ubicacion_inmueble, bi_aql_rengoetario_agente, bi_aql_rengoetario_inquilino, bi_alq_sucursal)
-	SELECT COUNT(*), SUM(alq_comision), SUM(alq_precio) - SUM(SQLeros.BI_f_MontoPagoAnterior(alq_codigo)),
+	INSERT INTO SQLeros.BI_Alquiler (bi_alq_cantidad, bi_alq_comision_total, bi_alq_incremento_total, bi_alq_precio_total, bi_alq_tiempo_inicio, bi_alq_ubicacion_inmueble, bi_alq_rengoetario_agente, bi_alq_rengoetario_inquilino, bi_alq_sucursal)
+	SELECT COUNT(*), SUM(alq_comision), SUM(alq_precio) - SUM(SQLeros.BI_f_MontoPagoAnterior(pagoalq_codigo)),
 	SUM(alq_precio), bi_tiempo_codigo, inm_ubicacion, SQLeros.BI_f_rango_etario(PA.pers_fecha_nac), SQLeros.BI_f_rango_etario(PINQ.pers_fecha_nac),
 	anu_sucursal
 	FROM SQLeros.Alquiler
@@ -517,8 +517,8 @@ BEGIN
 	JOIN SQLeros.Persona PA ON PA.pers_codigo = anu_agente
 	JOIN SQLeros.InquilinoPorAlquiler ON inquilinoporalquiler_alquiler = alq_codigo
 	JOIN SQLeros.Persona PINQ ON PINQ.pers_codigo = inquilinoporalquiler_inquilino
+	JOIN SQLeros.PagoAlquiler ON pagoalq_alquiler = pagoalq_codigo
 	GROUP BY bi_tiempo_codigo, YEAR(alq_fecha_inicio), MONTH(alq_fecha_inicio), inm_ubicacion, SQLeros.BI_f_rango_etario(PA.pers_fecha_nac), SQLeros.BI_f_rango_etario(PINQ.pers_fecha_nac), anu_sucursal
-
 END
 GO
 
@@ -623,6 +623,24 @@ JOIN SQLeros.BI_TipoMoneda ON bi_moneda_codigo = bi_anu_tipo_moneda
 GROUP BY bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_tipoinmueble_codigo, bi_tipoinmueble_descripcion, bi_rangom2_codigo, bi_rangom2_descripcion, bi_moneda_codigo, bi_moneda_nombre
 GO
 
+/*VISTA 3*/
+IF OBJECT_ID('SQLeros.BI_BarriosMasElegidos', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_BarriosMasElegidos
+GO
+CREATE VIEW SQLeros.BI_BarriosMasElegidos AS
+SELECT TOP 5 bi_barrio_descripcion AS [Barrio],
+bi_rangoetario_descripcion AS [Rango etario],
+bi_tiempo_year AS [Año],
+bi_tiempo_cuatrimestre AS [Cuatrimestre],
+COUNT(*) AS [Cantidad] --Después borrar la cantidad
+FROM SQLeros.BI_Alquiler
+JOIN SQLeros.BI_Ubicacion ON bi_ubicacion_codigo = bi_alq_ubicacion_inmueble
+JOIN SQLeros.BI_Barrio ON bi_barrio_codigo = bi_ubicacion_barrio
+JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_alq_tiempo_inicio
+JOIN SQLeros.BI_RangoEtario ON bi_rangoetario_codigo = bi_alq_rengoetario_inquilino
+GROUP BY bi_barrio_codigo, bi_barrio_descripcion, bi_rangoetario_codigo, bi_rangoetario_descripcion, bi_tiempo_year, bi_tiempo_cuatrimestre
+ORDER BY COUNT(*) DESC
+GO
 /*VISTA 4*/
 -- Nota: Esta vista esta vacía dado que no hay datos que cumplan la condicion.
 -- SELECT * FROM SQLeros.PagoAlquiler WHERE pagoalq_fecha > pagoalq_vencimiento
@@ -713,6 +731,7 @@ BEGIN TRANSACTION
 		EXEC SQLeros.BI_MigrarSucursal
 
 		--Migración de los hechos
+		EXEC SQLeros.BI_MigrarAlquiler
 		EXEC SQLeros.BI_MigrarPagoAlquiler
 		EXEC SQLeros.BI_AumentoPagoAlq
 		EXEC SQLeros.BI_MigrarAnuncio
@@ -725,6 +744,9 @@ BEGIN TRANSACTION
 
 -- Selects de las vistas
 /*
+SELECT * FROM SQLeros.BI_DuracionPromedioDeAnuncios					-- Vista 1
+SELECT * FROM SQLeros.BI_BarriosMasElegidos							-- Vista 3
+SELECT * FROM SQLeros.BI_PrecioPromedioDeAnunciosDeInmuebles		-- Vista 2
 SELECT * FROM SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler		-- Vista 4
 SELECT * FROM SQLeros.BI_PorcentajeIncrementoValorAlquiler			-- Vista 5
 SELECT * FROM SQLeros.BI_PorcentajeOperacionesConcretadas			-- Vista 8

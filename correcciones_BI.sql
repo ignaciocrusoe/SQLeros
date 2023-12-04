@@ -630,7 +630,7 @@ JOIN SQLeros.BI_Barrio ON bi_barrio_codigo = bi_ubicacion_barrio
 JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_operacion_tiempo_inicio
 JOIN SQLeros.BI_RangoEtario ON bi_rangoetario_codigo = bi_operacion_rengoetario_cliente
 JOIN SQLeros.BI_TipoOperacion ON bi_tipooperacion_codigo = bi_operacion_tipo_operacion
-HAVING bi_tipooperacion_descripcion = 'Tipo Operación Alquiler Contrato' OR bi_tipooperacion_descripcion = 'Tipo Operación Alquiler Temporario'
+WHERE bi_tipooperacion_descripcion = 'Tipo Operación Alquiler Contrato' OR bi_tipooperacion_descripcion = 'Tipo Operación Alquiler Temporario'
 GROUP BY bi_barrio_codigo, bi_barrio_descripcion, bi_rangoetario_codigo, bi_rangoetario_descripcion, bi_tiempo_year, bi_tiempo_cuatrimestre
 ORDER BY COUNT(*) DESC
 GO
@@ -672,15 +672,22 @@ FROM SQLeros.BI_PagoAlquiler
 WHERE bi_pagoalq_alquiler_esta_activo = 1 AND bi_pagoalq_porcentaje_aumento_pago IS NOT NULL
 GO
 
-/*VISTA 7*//*
+/*VISTA 7*/
 IF OBJECT_ID('SQLeros.BI_ValorPromedioDeLaComision', 'V') IS NOT NULL
-	DROP VIEW SQLeros.BI_BarriosMasElegidos
+	DROP VIEW SQLeros.BI_ValorPromedioDeLaComision
 GO
 CREATE VIEW SQLeros.BI_ValorPromedioDeLaComision AS
-SELECT SUM(bi_venta_comision) / SUM(bi_venta_cantidad) AS [Comisión promedio],
-bi_venta_tipo_operacion AS [Tipo de operación]
-FROM SQLeros.BI_Venta
-*/
+SELECT SUM(bi_operacion_comision_total) / SUM(bi_operacion_cantidad) AS [Comisión promedio],
+bi_tipooperacion_descripcion AS [Tipo de operación],
+bi_sucur_nombre AS [Sucursal],
+bi_tiempo_year AS [Año],
+bi_tiempo_cuatrimestre AS [Cuatrimestre]
+FROM SQLeros.BI_Operacion
+JOIN SQLeros.BI_TipoOperacion ON bi_tipooperacion_codigo = bi_operacion_tipo_operacion
+JOIN SQLeros.BI_Sucursal ON bi_sucur_codigo = bi_operacion_sucursal
+JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_operacion_tiempo_inicio
+GROUP BY bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_sucur_codigo, bi_sucur_nombre, bi_tiempo_year, bi_tiempo_cuatrimestre
+GO
 
 /*VISTA 8*/	-- Es debatible si nos conviene juntar Alquileres y Ventas en una sola tabla Operacion y que tipoOperacion sea una dimension
 /*
@@ -751,6 +758,7 @@ SELECT * FROM SQLeros.BI_PrecioPromedioDeAnunciosDeInmuebles		-- Vista 2
 SELECT * FROM SQLeros.BI_BarriosMasElegidos							-- Vista 3
 SELECT * FROM SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler		-- Vista 4
 SELECT * FROM SQLeros.BI_PorcentajeIncrementoValorAlquiler			-- Vista 5
+SELECT * FROM SQLeros.BI_ValorPromedioDeLaComision					-- Vista 7
 SELECT * FROM SQLeros.BI_PorcentajeOperacionesConcretadas			-- Vista 8
 */
 

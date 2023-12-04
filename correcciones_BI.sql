@@ -206,6 +206,7 @@ CREATE TABLE SQLeros.BI_PagoAlquiler(
 	bi_pagoalq_incremento_total DECIMAL(12,2),
 	bi_pagoalq_pagos_incumplidos INT,
 	bi_pagoalq_cantidad_pagos INT,
+	bi_pagoalq_cantidad_pagos_con_aumento INT,
 	bi_pagoalq_estado_alquiler INT
 )
 GO
@@ -295,6 +296,25 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID('SQLeros.BI_f_HuboAumento', 'FN') IS NOT NULL
+	DROP FUNCTION SQLeros.BI_f_HuboAumento
+GO
+CREATE FUNCTION SQLeros.BI_f_HuboAumento (@arg1 DECIMAL(12,2), @arg2 DECIMAL(12,2))
+RETURNS BIT
+BEGIN
+	DECLARE @return BIT
+	IF(@arg1 > @arg2)
+	BEGIN
+		SET @return = 1
+	END
+	ELSE
+	BEGIN
+		SET @return = NULL
+	END
+	RETURN @return
+END
+GO
+
 IF OBJECT_ID('SQLeros.BI_f_MontoPagoAnterior', 'FN') IS NOT NULL
 	DROP FUNCTION SQLeros.BI_f_MontoPagoAnterior
 GO
@@ -322,13 +342,13 @@ BEGIN
 	DECLARE @vencimiento SMALLDATETIME, @fecha_de_pago SMALLDATETIME
 	SELECT @fecha_de_pago = pagoalq_fecha, @vencimiento = pagoalq_vencimiento FROM SQLeros.PagoAlquiler
 	WHERE pagoalq_codigo = @pago
-	IF (@vencimiento > @fecha_de_pago)
+	IF (@fecha_de_pago > @vencimiento)
 	BEGIN
 		SET @r_value = 1
 	END
 	ELSE
 	BEGIN
-		SET @r_value = 0
+		SET @r_value = NULL
 	END
 	RETURN @r_value
 END
@@ -563,8 +583,8 @@ GO
 CREATE PROCEDURE SQLeros.BI_MigrarPagoAlquiler
 AS
 BEGIN
-	INSERT INTO SQLeros.BI_PagoAlquiler (bi_pagoalq_cantidad_pagos, bi_pagoalq_pagos_incumplidos, bi_pagoalq_tiempo, bi_pagoalq_total_pagado, bi_pagoalq_estado_alquiler, bi_pagoalq_incremento_total) 
-	SELECT COUNT(*), COUNT(SQLeros.BI_f_NoPagoATiempo(pagoalq_codigo)), bi_tiempo_codigo, SUM(pagoalq_importe) , alq_estado, SUM(pagoalq_importe - ISNULL(SQLeros.BI_f_MontoPagoAnterior(pagoalq_codigo), pagoalq_importe))
+	INSERT INTO SQLeros.BI_PagoAlquiler (bi_pagoalq_cantidad_pagos_con_aumento, bi_pagoalq_cantidad_pagos, bi_pagoalq_pagos_incumplidos, bi_pagoalq_tiempo, bi_pagoalq_total_pagado, bi_pagoalq_estado_alquiler, bi_pagoalq_incremento_total) 
+	SELECT COUNT(SQLeros.BI_f_HuboAumento(pagoalq_importe, ISNULL(SQLeros.BI_f_MontoPagoAnterior(pagoalq_codigo), pagoalq_importe))), COUNT(*), COUNT(SQLeros.BI_f_NoPagoATiempo(pagoalq_codigo)), bi_tiempo_codigo, SUM(pagoalq_importe) , alq_estado, SUM(pagoalq_importe - ISNULL(SQLeros.BI_f_MontoPagoAnterior(pagoalq_codigo), pagoalq_importe))
 	FROM SQLeros.PagoAlquiler
 	JOIN SQLeros.BI_Tiempo ON bi_tiempo_year = YEAR(pagoalq_fecha) AND bi_tiempo_month = MONTH(pagoalq_fecha)
 	JOIN SQLeros.Alquiler ON alq_codigo = pagoalq_alquiler
@@ -703,7 +723,7 @@ IF OBJECT_ID('SQLeros.BI_PorcentajeIncrementoValorAlquiler', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler
 GO
 CREATE VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler AS
-SELECT 100.0 * SUM(bi_pagoalq_incremento_total) / SUM(bi_pagoalq_total_pagado) AS [Porcentaje de incremento del valor de los alquileres],
+SELECT 100.0 * SUM(bi_pagoalq_incremento_total) / SUM(bi_pagoalq_cantidad_pagos_con_aumento) AS [Porcentaje de incremento del valor de los alquileres],
 bi_tiempo_year AS [Año],
 bi_tiempo_month AS [Mes]
 FROM SQLeros.BI_PagoAlquiler

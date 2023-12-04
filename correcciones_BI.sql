@@ -175,7 +175,7 @@ CREATE TABLE SQLeros.BI_Anuncio(
 	bi_anu_tipo_moneda INT,
 	bi_anu_ambientes INT,
 	bi_anu_ubicacion INT,
-	bi_anu_duracion_promedio INT, --En días
+	bi_anu_duracion_total INT, --En días
 	bi_anu_tipo_inmueble INT,
 	bi_anu_rangom2 INT,
 	bi_anu_rangoetario_agente INT,
@@ -553,9 +553,9 @@ GO
 CREATE PROCEDURE SQLeros.BI_MigrarAnuncio
 AS
 BEGIN
-	INSERT INTO SQLeros.BI_Anuncio(bi_anu_ambientes, bi_anu_duracion_promedio, bi_anu_precio_total, bi_anu_cantidad, bi_anu_rangom2, bi_anu_tiempo_pub, bi_anu_tipo_inmueble, bi_anu_tipo_moneda, bi_anu_tipo_op, bi_anu_ubicacion, bi_anu_rangoetario_agente, bi_anu_sucursal)
+	INSERT INTO SQLeros.BI_Anuncio(bi_anu_ambientes, bi_anu_duracion_total, bi_anu_precio_total, bi_anu_cantidad, bi_anu_rangom2, bi_anu_tiempo_pub, bi_anu_tipo_inmueble, bi_anu_tipo_moneda, bi_anu_tipo_op, bi_anu_ubicacion, bi_anu_rangoetario_agente, bi_anu_sucursal)
 	SELECT inm_ambientes,
-	AVG(DATEDIFF(DAY, anu_fecha_pub, anu_fecha_fin)),
+	SUM(DATEDIFF(DAY, anu_fecha_pub, anu_fecha_fin)),
 	SUM(anu_precio),COUNT(*) , SQLeros.BI_f_rango_superficie(inm_superficie),
 	(SELECT TOP 1 bi_tiempo_codigo FROM SQLeros.BI_Tiempo WHERE
 	bi_tiempo_year = YEAR(anu_fecha_pub) AND bi_tiempo_month = MONTH(anu_fecha_pub)),
@@ -657,7 +657,7 @@ IF OBJECT_ID('SQLeros.BI_DuracionPromedioDeAnuncios', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_DuracionPromedioDeAnuncios
 GO
 CREATE VIEW SQLeros.BI_DuracionPromedioDeAnuncios AS
-SELECT bi_anu_duracion_promedio AS [Duración promedio en días],
+SELECT SUM(bi_anu_duracion_total) / SUM(bi_anu_cantidad) AS [Duración promedio en días],
 bi_tipooperacion_descripcion AS [Tipo de operación],
 bi_barrio_descripcion AS [Barrio],
 bi_ambientes_cantidad AS [Ambientes]
@@ -666,7 +666,7 @@ JOIN SQLeros.BI_TipoOperacion ON bi_tipooperacion_codigo = bi_anu_tipo_op
 JOIN SQLeros.BI_Ubicacion ON bi_ubicacion_codigo = bi_anu_ubicacion
 JOIN SQLeros.BI_Barrio ON bi_barrio_codigo = bi_ubicacion_barrio
 JOIN SQLeros.BI_Ambientes ON bi_ambientes_codigo = bi_anu_ambientes
-GROUP BY bi_anu_duracion_promedio, bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_barrio_codigo, bi_barrio_descripcion, bi_ambientes_codigo, bi_ambientes_cantidad
+GROUP BY bi_anu_duracion_total, bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_barrio_codigo, bi_barrio_descripcion, bi_ambientes_codigo, bi_ambientes_cantidad
 GO
 
 /*VISTA 2*/

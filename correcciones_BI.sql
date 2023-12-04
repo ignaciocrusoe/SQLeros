@@ -699,36 +699,18 @@ GO
 -- SELECT * FROM SQLeros.BI_PagoAlquiler WHERE bi_pagoalq_estado = 'Activo'
 -- SELECT PAGO_ALQUILER_IMPORTE FROM gd_esquema.Maestra WHERE ALQUILER_ESTADO = 'Activo'
 -- Nota: parece que todos los alquileres activos tienen un solo pago => nunca hay aumento
-/*
 IF OBJECT_ID('SQLeros.BI_PorcentajeIncrementoValorAlquiler', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler
 GO
-CREATE VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler
-AS
-SELECT bi_tiempo_year, bi_tiempo_month, bi_pagoalq_porcentaje_aumento_pago
-FROM SQLeros.BI_PagoAlquiler
-	JOIN SQLeros.BI_Tiempo ON bi_pagoAlq_tiempo = bi_tiempo_codigo
-WHERE bi_pagoalq_alquiler_esta_activo = 1 AND bi_pagoalq_porcentaje_aumento_pago IS NOT NULL
-GO
-*/
-/*VISTA 6*/
-IF OBJECT_ID('SQLeros.BI_PrecioPromedioDeM2', 'V') IS NOT NULL
-	DROP VIEW SQLeros.BI_PrecioPromedioDeM2
-GO
-CREATE VIEW SQLeros.BI_PrecioPromedioDeM2 AS
-SELECT SUM(bi_operacion_precio_total) / SUM(bi_operacion_cantidad) AS [Precio Promedio],
-bi_tipoinmueble_descripcion AS [Tipo de inmueble],
-bi_localidad_descripcion AS [Localidad],
+CREATE VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler AS
+SELECT 100.0 * SUM(bi_pagoalq_incremento_total) / SUM(bi_pagoalq_total_pagado) AS [Porcentaje de incremento del valor de los alquileres],
 bi_tiempo_year AS [Año],
-bi_tiempo_cuatrimestre AS [Cuatrimestre]
-FROM SQLeros.BI_Operacion
-JOIN SQLeros.BI_TipoInmueble ON bi_tipoinmueble_codigo = bi_operacion_tipo_inmueble
-JOIN SQLeros.BI_Tiempo ON bi_operacion_tiempo_inicio = bi_tiempo_codigo
-JOIN SQLeros.BI_Ubicacion ON bi_ubicacion_codigo = bi_operacion_ubicacion_inmueble
-JOIN SQLeros.BI_Localidad ON bi_localidad_codigo = bi_ubicacion_localidad
-JOIN SQLeros.BI_TipoOperacion ON bi_tipooperacion_codigo = bi_operacion_tipo_operacion
-WHERE bi_tipooperacion_descripcion = 'Tipo Operación Venta'
-GROUP BY bi_tipoinmueble_codigo, bi_tipoinmueble_descripcion, bi_localidad_codigo, bi_localidad_descripcion, bi_tiempo_year, bi_tiempo_cuatrimestre
+bi_tiempo_month AS [Mes]
+FROM SQLeros.BI_PagoAlquiler
+JOIN SQLeros.BI_EstadoAlquiler ON bi_estadoalquiler_codigo = bi_pagoalq_estado_alquiler
+JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_pagoalq_tiempo
+WHERE bi_estadoalquiler_descripcion = 'Activo' AND bi_pagoalq_incremento_total > 0
+GROUP BY bi_tiempo_year, bi_tiempo_month
 GO
 
 /*VISTA 7*/

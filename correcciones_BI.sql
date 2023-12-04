@@ -489,11 +489,12 @@ BEGIN
 	JOIN SQLeros.Persona ON agen_persona = pers_codigo
 	GROUP BY inm_ambientes, inm_tipo, anu_moneda, anu_tipo_op, inm_ubicacion, SQLeros.BI_f_rango_superficie(inm_superficie), YEAR(anu_fecha_pub), MONTH(anu_fecha_pub), SQLeros.BI_f_rango_etario(pers_fecha_nac), anu_sucursal
 END
+GO
 
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarAlquiler')
 	DROP PROCEDURE SQLeros.BI_MigrarAlquiler
 GO
-CREATE OR ALTER PROCEDURE SQLeros.BI_MigrarAlquiler
+CREATE PROCEDURE SQLeros.BI_MigrarAlquiler
 AS
 BEGIN
 	INSERT INTO SQLeros.BI_Operacion (bi_operacion_cantidad, bi_operacion_comision_total, bi_operacion_precio_total, bi_operacion_tiempo_inicio, bi_operacion_ubicacion_inmueble, bi_operacion_rengoetario_agente, bi_operacion_rengoetario_cliente, bi_operacion_sucursal, bi_operacion_tipo_operacion, bi_operacion_moneda, bi_operacion_tipo_inmueble)
@@ -690,7 +691,7 @@ JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_operacion_tiempo_inicio
 GROUP BY bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_sucur_codigo, bi_sucur_nombre, bi_tiempo_year, bi_tiempo_cuatrimestre
 GO
 
-/*VISTA 8*/	-- Es debatible si nos conviene juntar Alquileres y Ventas en una sola tabla Operacion y que tipoOperacion sea una dimension
+/*VISTA 8*/
 IF OBJECT_ID('SQLeros.BI_PorcentajeOperacionesConcretadas', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_PorcentajeOperacionesConcretadas
 GO
@@ -715,11 +716,29 @@ JOIN SQLeros.BI_TipoOperacion TIP ON TIP.bi_tipooperacion_codigo = OP.bi_operaci
 GROUP BY SU.bi_sucur_codigo, SU.bi_sucur_nombre, RE.bi_rangoetario_codigo, RE.bi_rangoetario_descripcion, TI.bi_tiempo_yeaR, TIP.bi_tipooperacion_codigo, TIP.bi_tipooperacion_descripcion
 GO
 
+/*Vista 9*/
+IF OBJECT_ID('SQLeros.BI_MontoTotalDeCierreDeContratos', 'V') IS NOT NULL
+	DROP VIEW SQLeros.BI_MontoTotalDeCierreDeContratos
+GO
+CREATE VIEW SQLeros.BI_MontoTotalDeCierreDeContratos AS
+SELECT SUM(bi_operacion_precio_total) AS [Monto total de cierre de contratos],
+bi_tiempo_year AS [Año],
+bi_tiempo_cuatrimestre AS [Cuatrimestre],
+bi_sucur_nombre AS [Sucursal],
+bi_tipooperacion_descripcion AS [Tipo de operación]
+FROM SQLeros.BI_Operacion
+JOIN SQLeros.BI_TipoOperacion ON bi_tipooperacion_codigo = bi_operacion_tipo_operacion
+JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_operacion_tiempo_inicio
+JOIN SQLeros.BI_Sucursal ON bi_sucur_codigo = bi_operacion_sucursal
+GROUP BY bi_tiempo_year, bi_tiempo_cuatrimestre, bi_sucur_codigo, bi_sucur_nombre, bi_tipooperacion_codigo, bi_tipooperacion_descripcion
+GO
+
 --Migración de Tablas
 BEGIN TRANSACTION
 	BEGIN TRY
 		--Migración de las dimensiones
 		EXEC SQLeros.BI_MigrarTiempo
+		EXEC SQLeros.BI_MigrarAmbientes
 		EXEC SQLeros.BI_MigrarBarrio
 		EXEC SQLeros.BI_MigrarLocalidad
 		EXEC SQLeros.BI_MigrarProvincia
@@ -728,16 +747,15 @@ BEGIN TRANSACTION
 		EXEC SQLeros.BI_InsertarRangoM2
 		EXEC SQLeros.BI_MigrarTipoOperacion
 		EXEC SQLeros.BI_MigrarTipoInmueble
-		EXEC SQLeros.BI_MigrarAmbientes
 		EXEC SQLeros.BI_MigrarTipoMoneda
 		EXEC SQLeros.BI_MigrarSucursal
 
 		--Migración de los hechos
-		EXEC SQLeros.BI_MigrarAlquiler
-		EXEC SQLeros.BI_MigrarPagoAlquiler
-		EXEC SQLeros.BI_AumentoPagoAlq
 		EXEC SQLeros.BI_MigrarAnuncio
+		EXEC SQLeros.BI_MigrarAlquiler
 		EXEC SQLeros.BI_MigrarVenta
+		EXEC SQLeros.BI_MigrarPagoAlquiler
+		--EXEC SQLeros.BI_AumentoPagoAlq
 		COMMIT TRANSACTION;
 	END TRY
 	BEGIN CATCH
@@ -753,6 +771,7 @@ SELECT * FROM SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler		-- Vista 4
 SELECT * FROM SQLeros.BI_PorcentajeIncrementoValorAlquiler			-- Vista 5
 SELECT * FROM SQLeros.BI_ValorPromedioDeLaComision					-- Vista 7
 SELECT * FROM SQLeros.BI_PorcentajeOperacionesConcretadas			-- Vista 8
+SELECT * FROM SQLeros.BI_MontoTotalDeCierreDeContratos				-- Vista 9
 */
 
 -- Para probar vista 5 - borrar

@@ -602,34 +602,6 @@ BEGIN
 END
 GO
 
-/*
-IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_AumentoPagoAlq')
-	DROP PROCEDURE SQLeros.BI_AumentoPagoAlq
-GO
-CREATE PROCEDURE SQLeros.BI_AumentoPagoAlq -- Solo para los activos que hayan aumentado
-AS
-BEGIN
-	UPDATE SQLeros.BI_PagoAlquiler
-	SET bi_pagoalq_porcentaje_aumento_pago =
-		 100 *
-		 ISNULL(
-			(SELECT AVG(SQLeros.BI_f_MontoPagoAnterior(pagoalq_codigo) / pagoalq_importe)
-			FROM SQLeros.PagoAlquiler AS P1
-				JOIN SQLeros.Alquiler ON pagoalq_alquiler = alq_codigo
-				JOIN SQLeros.EstadoAlquiler ON alq_estado = estadoalquiler_codigo
-			WHERE bi_tiempo_year = YEAR(pagoalq_fecha) AND bi_tiempo_month = MONTH(pagoalq_fecha) AND
-				estadoalquiler_descripcion = 'Activo' AND pagoalq_importe >
-				(SELECT TOP 1 P2.pagoalq_importe
-				FROM SQLeros.PagoAlquiler AS P2
-				WHERE P2.pagoalq_alquiler = P1.pagoalq_alquiler AND P2.pagoalq_fecha < P1.pagoalq_fecha
-				ORDER BY P2.pagoalq_fecha DESC))
-		, 0)
-	FROM SQLeros.BI_PagoAlquiler
-		JOIN SQLeros.BI_Tiempo ON bi_pagoAlq_tiempo = bi_tiempo_codigo
-	WHERE bi_pagoalq_alquiler_esta_activo = 1
-END
-GO
-*/
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarVenta')
 	DROP PROCEDURE SQLeros.BI_MigrarVenta
 GO
@@ -820,8 +792,8 @@ GROUP BY bi_tiempo_year, bi_tiempo_cuatrimestre, bi_sucur_codigo, bi_sucur_nombr
 GO
 
 --Migración de Tablas
---BEGIN TRANSACTION
-	--BEGIN TRY
+BEGIN TRANSACTION
+	BEGIN TRY
 		--Migración de las dimensiones
 		EXEC SQLeros.BI_MigrarTiempo
 		EXEC SQLeros.BI_MigrarAmbientes
@@ -842,12 +814,11 @@ GO
 		EXEC SQLeros.BI_MigrarAlquiler
 		EXEC SQLeros.BI_MigrarVenta
 		EXEC SQLeros.BI_MigrarPagoAlquiler
-		--EXEC SQLeros.BI_AumentoPagoAlq
-		--COMMIT TRANSACTION;
-	--END TRY
-	--BEGIN CATCH
-		--ROLLBACK TRANSACTION;
-	--END CATCH
+		COMMIT TRANSACTION;
+	END TRY
+	BEGIN CATCH
+		ROLLBACK TRANSACTION;
+	END CATCH
 
 -- Selects de las vistas
 /*

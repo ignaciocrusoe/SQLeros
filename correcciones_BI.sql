@@ -193,7 +193,6 @@ CREATE TABLE SQLeros.BI_PagoAlquiler(
 	bi_pagoalq_codigo INT IDENTITY PRIMARY KEY,
 	bi_pagoalq_tiempo INT,
 	bi_pagoalq_total_pagado DECIMAL(12, 2),
-	bi_pagoalq_pagos_totales INT,
 	bi_pagoalq_pagos_incumplidos INT,
 	bi_pagoalq_cantidad_pagos INT,
 )
@@ -535,25 +534,21 @@ BEGIN
 	GROUP BY bi_tiempo_codigo, YEAR(alq_fecha_inicio), MONTH(alq_fecha_inicio), inm_ubicacion, SQLeros.BI_f_rango_etario(PA.pers_fecha_nac), SQLeros.BI_f_rango_etario(PINQ.pers_fecha_nac), anu_sucursal, anu_tipo_op, anu_moneda, inm_tipo
 END
 GO
-/*
+
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarPagoAlquiler')
 	DROP PROCEDURE SQLeros.BI_MigrarPagoAlquiler
 GO
 CREATE PROCEDURE SQLeros.BI_MigrarPagoAlquiler
 AS
 BEGIN
-	INSERT INTO SQLeros.BI_PagoAlquiler (bi_pagoalq_tiempo, bi_pagoalq_valor_promedio, bi_pagoalq_alquiler_esta_activo, bi_pagoalq_total_pagado, bi_pagoalq_cantidad_pagos, bi_pagoalq_paga_a_tiempo)
-	SELECT bi_tiempo_codigo, AVG(pagoalq_importe), 
-		(CASE WHEN estadoalquiler_descripcion = 'Activo' THEN 1 ELSE 0 END), SUM(pagoalq_importe), COUNT(*),
-		(CASE WHEN pagoalq_fecha > pagoalq_vencimiento THEN 0 ELSE 1 END)
+	INSERT INTO SQLeros.BI_PagoAlquiler (bi_pagoalq_cantidad_pagos, bi_pagoalq_pagos_incumplidos, bi_pagoalq_tiempo, bi_pagoalq_total_pagado) 
+	SELECT COUNT(*), COUNT(SQLeros.BI_f_NoPagoATiempo(pagoalq_codigo)), bi_tiempo_codigo, SUM(pagoalq_importe) 
 	FROM SQLeros.PagoAlquiler
-		JOIN SQLeros.BI_Tiempo ON YEAR(pagoalq_fecha) = bi_tiempo_year AND MONTH(pagoalq_fecha) = bi_tiempo_month	-- Se puede evitar si la key fuera year+month
-		JOIN SQLeros.Alquiler ON pagoalq_alquiler = alq_codigo
-		JOIN SQLeros.EstadoAlquiler ON alq_estado = estadoalquiler_codigo
-	GROUP BY YEAR(pagoalq_fecha), bi_tiempo_codigo, estadoalquiler_codigo, estadoalquiler_descripcion, CASE WHEN pagoalq_fecha > pagoalq_vencimiento THEN 0 ELSE 1 END
+	JOIN SQLeros.BI_Tiempo ON bi_tiempo_year = YEAR(pagoalq_fecha) AND bi_tiempo_month = MONTH(pagoalq_fecha)
+	GROUP BY bi_tiempo_codigo
 END
 GO
-*/
+
 /*
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_AumentoPagoAlq')
 	DROP PROCEDURE SQLeros.BI_AumentoPagoAlq
@@ -796,7 +791,7 @@ GO
 		EXEC SQLeros.BI_MigrarAnuncio
 		EXEC SQLeros.BI_MigrarAlquiler
 		EXEC SQLeros.BI_MigrarVenta
-		--EXEC SQLeros.BI_MigrarPagoAlquiler
+		EXEC SQLeros.BI_MigrarPagoAlquiler
 		--EXEC SQLeros.BI_AumentoPagoAlq
 		--COMMIT TRANSACTION;
 	--END TRY

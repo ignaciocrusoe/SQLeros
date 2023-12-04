@@ -300,16 +300,30 @@ BEGIN
 	RETURN ISNULL(@monto, 0)
 END
 GO
-/*
-IF OBJECT_ID('SQLeros.BI_f_PagoATiempo', 'FN') IS NOT NULL
-	DROP FUNCTION SQLeros.BI_f_PagoATiempo
+
+IF OBJECT_ID('SQLeros.BI_f_NoPagoATiempo', 'FN') IS NOT NULL
+	DROP FUNCTION SQLeros.BI_f_NoPagoATiempo
 GO
-CREATE FUNCTION SQLeros.BI_f_PagoATiempo (@pago)
-RETRUNS BIT
+CREATE FUNCTION SQLeros.BI_f_NoPagoATiempo (@pago INT)
+RETURNS BIT
 AS
 BEGIN
+	DECLARE @r_value BIT
+	DECLARE @vencimiento SMALLDATETIME, @fecha_de_pago SMALLDATETIME
+	SELECT @fecha_de_pago = pagoalq_fecha, @vencimiento = pagoalq_vencimiento FROM SQLeros.PagoAlquiler
+	WHERE pagoalq_codigo = @pago
+	IF (@fecha_de_pago > @vencimiento)
+	BEGIN
+		SET @r_value = 1
+	END
+	ELSE
+	BEGIN
+		SET @r_value = 0
+	END
+	RETURN @r_value
 END
-*/
+GO
+
 --Procedures para migrar las dimensiones
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarBarrio')
 	DROP PROCEDURE SQLeros.BI_MigrarBarrio
@@ -733,7 +747,7 @@ SELECT 100.0 * SUM(OP.bi_operacion_cantidad) / (SELECT SUM(bi_anu_cantidad) FROM
 					WHERE bi_anu_sucursal = SU.bi_sucur_codigo
 					AND bi_anu_rangoetario_agente = RE.bi_rangoetario_codigo
 					AND TI2.bi_tiempo_year = TI.bi_tiempo_year
-					GROUP BY bi_anu_sucursal, YEAR(TI2.bi_tiempo_year), bi_anu_tipo_op, bi_anu_rangoetario_agente) AS [Porcentaje de operaciones concretadas],
+					GROUP BY bi_anu_sucursal, YEAR(TI2.bi_tiempo_year), bi_anu_rangoetario_agente) AS [Porcentaje de operaciones concretadas],
 SU.bi_sucur_nombre AS [Sucursal],
 RE.bi_rangoetario_descripcion AS [Rango etario del empleado],
 TI.bi_tiempo_year AS [Año]

@@ -191,13 +191,11 @@ GO
 
 CREATE TABLE SQLeros.BI_PagoAlquiler(
 	bi_pagoalq_codigo INT IDENTITY PRIMARY KEY,
-	bi_pagoalq_tiempo INT, -- FOREIGN KEY REFERENCES SQLeros.Bi_Tiempo (bi_tiempo_codigo),
-	bi_pagoalq_valor_promedio DECIMAL(12, 2),
-	bi_pagoalq_alquiler_esta_activo BIT,	-- Esto sería dimensión? O estado entero es dim?
-	bi_pagoalq_paga_a_tiempo BIT,	-- dimensión?
-	bi_pagoalq_cantidad_pagos INT,
+	bi_pagoalq_tiempo INT,
 	bi_pagoalq_total_pagado DECIMAL(12, 2),
-	bi_pagoalq_porcentaje_aumento_pago DECIMAL(5, 2) -- Solo para los alquileres activos que hayan aumentado desde el último pago
+	bi_pagoalq_pagos_totales INT,
+	bi_pagoalq_pagos_incumplidos INT,
+	bi_pagoalq_cantidad_pagos INT,
 )
 GO
 
@@ -302,6 +300,16 @@ BEGIN
 	RETURN ISNULL(@monto, 0)
 END
 GO
+/*
+IF OBJECT_ID('SQLeros.BI_f_PagoATiempo', 'FN') IS NOT NULL
+	DROP FUNCTION SQLeros.BI_f_PagoATiempo
+GO
+CREATE FUNCTION SQLeros.BI_f_PagoATiempo (@pago)
+RETRUNS BIT
+AS
+BEGIN
+END
+*/
 --Procedures para migrar las dimensiones
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarBarrio')
 	DROP PROCEDURE SQLeros.BI_MigrarBarrio
@@ -513,7 +521,7 @@ BEGIN
 	GROUP BY bi_tiempo_codigo, YEAR(alq_fecha_inicio), MONTH(alq_fecha_inicio), inm_ubicacion, SQLeros.BI_f_rango_etario(PA.pers_fecha_nac), SQLeros.BI_f_rango_etario(PINQ.pers_fecha_nac), anu_sucursal, anu_tipo_op, anu_moneda, inm_tipo
 END
 GO
-
+/*
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarPagoAlquiler')
 	DROP PROCEDURE SQLeros.BI_MigrarPagoAlquiler
 GO
@@ -531,7 +539,8 @@ BEGIN
 	GROUP BY YEAR(pagoalq_fecha), bi_tiempo_codigo, estadoalquiler_codigo, estadoalquiler_descripcion, CASE WHEN pagoalq_fecha > pagoalq_vencimiento THEN 0 ELSE 1 END
 END
 GO
-
+*/
+/*
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_AumentoPagoAlq')
 	DROP PROCEDURE SQLeros.BI_AumentoPagoAlq
 GO
@@ -558,7 +567,7 @@ BEGIN
 	WHERE bi_pagoalq_alquiler_esta_activo = 1
 END
 GO
-
+*/
 IF EXISTS(SELECT [name] FROM sys.procedures WHERE [name] = 'BI_MigrarVenta')
 	DROP PROCEDURE SQLeros.BI_MigrarVenta
 GO
@@ -641,6 +650,7 @@ GO
 -- SELECT * FROM SQLeros.PagoAlquiler WHERE pagoalq_fecha > pagoalq_vencimiento
 -- SELECT * FROM gd_esquema.Maestra WHERE PAGO_ALQUILER_FECHA > PAGO_ALQUILER_FECHA_VENCIMIENTO
 -- Ninguna de esas querys devuelve nada.
+/*
 IF OBJECT_ID('SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler
 GO
@@ -657,12 +667,13 @@ SELECT bi_tiempo_year Año, bi_tiempo_month Mes,
 	JOIN SQLeros.BI_Tiempo ON bi_pagoAlq_tiempo = bi_tiempo_codigo
 GROUP BY bi_pagoAlq_tiempo, bi_tiempo_year, bi_tiempo_month
 GO
-
+*/
 /*VISTA 5*/
 -- Parece que no hay activos con aumento. Mostramos todos los activos (van a tener aumento = 0).
 -- SELECT * FROM SQLeros.BI_PagoAlquiler WHERE bi_pagoalq_estado = 'Activo'
 -- SELECT PAGO_ALQUILER_IMPORTE FROM gd_esquema.Maestra WHERE ALQUILER_ESTADO = 'Activo'
 -- Nota: parece que todos los alquileres activos tienen un solo pago => nunca hay aumento
+/*
 IF OBJECT_ID('SQLeros.BI_PorcentajeIncrementoValorAlquiler', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_PorcentajeIncrementoValorAlquiler
 GO
@@ -673,7 +684,7 @@ FROM SQLeros.BI_PagoAlquiler
 	JOIN SQLeros.BI_Tiempo ON bi_pagoAlq_tiempo = bi_tiempo_codigo
 WHERE bi_pagoalq_alquiler_esta_activo = 1 AND bi_pagoalq_porcentaje_aumento_pago IS NOT NULL
 GO
-
+*/
 /*VISTA 6*/
 IF OBJECT_ID('SQLeros.BI_PrecioPromedioDeM2', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_PrecioPromedioDeM2
@@ -722,18 +733,15 @@ SELECT 100.0 * SUM(OP.bi_operacion_cantidad) / (SELECT SUM(bi_anu_cantidad) FROM
 					WHERE bi_anu_sucursal = SU.bi_sucur_codigo
 					AND bi_anu_rangoetario_agente = RE.bi_rangoetario_codigo
 					AND TI2.bi_tiempo_year = TI.bi_tiempo_year
-					AND bi_anu_tipo_op = TIP.bi_tipooperacion_codigo
 					GROUP BY bi_anu_sucursal, YEAR(TI2.bi_tiempo_year), bi_anu_tipo_op, bi_anu_rangoetario_agente) AS [Porcentaje de operaciones concretadas],
 SU.bi_sucur_nombre AS [Sucursal],
 RE.bi_rangoetario_descripcion AS [Rango etario del empleado],
-TI.bi_tiempo_year AS [Año],
-TIP.bi_tipooperacion_descripcion AS [Tipo de operación]
+TI.bi_tiempo_year AS [Año]
 FROM SQLeros.BI_Operacion OP
 JOIN SQLeros.BI_Sucursal SU ON SU.bi_sucur_codigo = OP.bi_operacion_sucursal
 JOIN SQLeros.BI_RangoEtario RE ON RE.bi_rangoetario_codigo = OP.bi_operacion_rengoetario_agente
 JOIN SQLeros.BI_Tiempo TI ON TI.bi_tiempo_codigo = OP.bi_operacion_tiempo_inicio
-JOIN SQLeros.BI_TipoOperacion TIP ON TIP.bi_tipooperacion_codigo = OP.bi_operacion_tipo_operacion
-GROUP BY SU.bi_sucur_codigo, SU.bi_sucur_nombre, RE.bi_rangoetario_codigo, RE.bi_rangoetario_descripcion, TI.bi_tiempo_yeaR, TIP.bi_tipooperacion_codigo, TIP.bi_tipooperacion_descripcion
+GROUP BY SU.bi_sucur_codigo, SU.bi_sucur_nombre, RE.bi_rangoetario_codigo, RE.bi_rangoetario_descripcion, TI.bi_tiempo_yeaR
 GO
 
 /*Vista 9*/
@@ -754,8 +762,8 @@ GROUP BY bi_tiempo_year, bi_tiempo_cuatrimestre, bi_sucur_codigo, bi_sucur_nombr
 GO
 
 --Migración de Tablas
-BEGIN TRANSACTION
-	BEGIN TRY
+--BEGIN TRANSACTION
+	--BEGIN TRY
 		--Migración de las dimensiones
 		EXEC SQLeros.BI_MigrarTiempo
 		EXEC SQLeros.BI_MigrarAmbientes
@@ -774,13 +782,13 @@ BEGIN TRANSACTION
 		EXEC SQLeros.BI_MigrarAnuncio
 		EXEC SQLeros.BI_MigrarAlquiler
 		EXEC SQLeros.BI_MigrarVenta
-		EXEC SQLeros.BI_MigrarPagoAlquiler
+		--EXEC SQLeros.BI_MigrarPagoAlquiler
 		--EXEC SQLeros.BI_AumentoPagoAlq
-		COMMIT TRANSACTION;
-	END TRY
-	BEGIN CATCH
-		ROLLBACK TRANSACTION;
-	END CATCH
+		--COMMIT TRANSACTION;
+	--END TRY
+	--BEGIN CATCH
+		--ROLLBACK TRANSACTION;
+	--END CATCH
 
 -- Selects de las vistas
 /*

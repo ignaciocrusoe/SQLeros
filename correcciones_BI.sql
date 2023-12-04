@@ -203,6 +203,7 @@ CREATE TABLE SQLeros.BI_PagoAlquiler(
 	bi_pagoalq_codigo INT IDENTITY PRIMARY KEY,
 	bi_pagoalq_tiempo INT,
 	bi_pagoalq_total_pagado DECIMAL(12, 2),
+	bi_pagoalq_incremento_total DECIMAL(12,2),
 	bi_pagoalq_pagos_incumplidos INT,
 	bi_pagoalq_cantidad_pagos INT,
 	bi_pagoalq_estado_alquiler INT
@@ -301,13 +302,12 @@ CREATE FUNCTION SQLeros.BI_f_MontoPagoAnterior(@pagoAlquiler INT)
 RETURNS DECIMAL (12, 2)
 AS
 BEGIN
-	DECLARE @monto DECIMAL(12, 2)
-	SELECT TOP 1 @monto = P2.pagoalq_importe
-		FROM SQLeros.PagoAlquiler AS P1
-			JOIN SQLeros.PagoAlquiler AS P2 ON P1.pagoalq_alquiler = P2.pagoalq_alquiler
-		WHERE P1.pagoalq_codigo = @pagoAlquiler AND P2.pagoalq_nro_periodo = P1.pagoalq_nro_periodo - 1
-		ORDER BY P2.pagoalq_fecha DESC
-	RETURN ISNULL(@monto, 0)
+	DECLARE @monto DECIMAL(12, 2), @fecha SMALLDATETIME, @alquiler INT
+	SELECT @fecha = pagoalq_fecha, @alquiler = pagoalq_alquiler FROM SQLeros.PagoAlquiler WHERE pagoalq_codigo = @pagoAlquiler
+	SET @monto = (SELECT TOP 1 pagoalq_importe FROM SQLeros.PagoAlquiler
+				  WHERE pagoalq_fecha < @fecha AND pagoalq_codigo != @pagoAlquiler AND pagoalq_alquiler = @alquiler
+				  ORDER BY pagoalq_fecha DESC)
+	RETURN @monto
 END
 GO
 
@@ -563,8 +563,8 @@ GO
 CREATE PROCEDURE SQLeros.BI_MigrarPagoAlquiler
 AS
 BEGIN
-	INSERT INTO SQLeros.BI_PagoAlquiler (bi_pagoalq_cantidad_pagos, bi_pagoalq_pagos_incumplidos, bi_pagoalq_tiempo, bi_pagoalq_total_pagado, bi_pagoalq_estado_alquiler) 
-	SELECT COUNT(*), COUNT(SQLeros.BI_f_NoPagoATiempo(pagoalq_codigo)), bi_tiempo_codigo, SUM(pagoalq_importe) , alq_estado
+	INSERT INTO SQLeros.BI_PagoAlquiler (bi_pagoalq_cantidad_pagos, bi_pagoalq_pagos_incumplidos, bi_pagoalq_tiempo, bi_pagoalq_total_pagado, bi_pagoalq_estado_alquiler, bi_pagoalq_incremento_total) 
+	SELECT COUNT(*), COUNT(SQLeros.BI_f_NoPagoATiempo(pagoalq_codigo)), bi_tiempo_codigo, SUM(pagoalq_importe) , alq_estado, SUM(pagoalq_importe - ISNULL(SQLeros.BI_f_MontoPagoAnterior(pagoalq_codigo), pagoalq_importe))
 	FROM SQLeros.PagoAlquiler
 	JOIN SQLeros.BI_Tiempo ON bi_tiempo_year = YEAR(pagoalq_fecha) AND bi_tiempo_month = MONTH(pagoalq_fecha)
 	JOIN SQLeros.Alquiler ON alq_codigo = pagoalq_alquiler

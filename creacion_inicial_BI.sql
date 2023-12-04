@@ -456,7 +456,7 @@ BEGIN
 	FROM SQLeros.PagoAlquiler AS P1
 		JOIN SQLeros.PagoAlquiler AS P2 ON P2.pagoalq_alquiler = P1.pagoalq_alquiler
 	WHERE P1.pagoalq_codigo = @pagoAlquiler AND MONTH(P1.pagoalq_fecha) - 1 = MONTH(P2.pagoalq_fecha)
-	RETURN ISNULL(@monto, 0)
+	RETURN ISNULL(@monto, -1)
 END
 GO
 

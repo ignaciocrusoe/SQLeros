@@ -633,13 +633,16 @@ CREATE VIEW SQLeros.BI_DuracionPromedioDeAnuncios AS
 SELECT SUM(bi_anu_duracion_total) / SUM(bi_anu_cantidad) AS [Duración promedio en días],
 bi_tipooperacion_descripcion AS [Tipo de operación],
 bi_barrio_descripcion AS [Barrio],
-bi_ambientes_cantidad AS [Ambientes]
+bi_ambientes_cantidad AS [Ambientes],
+bi_tiempo_year AS [Año],
+bi_tiempo_cuatrimestre AS [Cuatrimestre]
 FROM SQLeros.BI_Anuncio
-JOIN SQLeros.BI_TipoOperacion ON bi_tipooperacion_codigo = bi_anu_tipo_op
-JOIN SQLeros.BI_Ubicacion ON bi_ubicacion_codigo = bi_anu_ubicacion
-JOIN SQLeros.BI_Barrio ON bi_barrio_codigo = bi_ubicacion_barrio
-JOIN SQLeros.BI_Ambientes ON bi_ambientes_codigo = bi_anu_ambientes
-GROUP BY bi_anu_duracion_total, bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_barrio_codigo, bi_barrio_descripcion, bi_ambientes_codigo, bi_ambientes_cantidad
+	JOIN SQLeros.BI_TipoOperacion ON bi_tipooperacion_codigo = bi_anu_tipo_op
+	JOIN SQLeros.BI_Ubicacion ON bi_ubicacion_codigo = bi_anu_ubicacion
+	JOIN SQLeros.BI_Barrio ON bi_barrio_codigo = bi_ubicacion_barrio
+	JOIN SQLeros.BI_Ambientes ON bi_ambientes_codigo = bi_anu_ambientes
+	JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_anu_tiempo_pub
+GROUP BY bi_anu_duracion_total, bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_barrio_codigo, bi_barrio_descripcion, bi_ambientes_codigo, bi_ambientes_cantidad, bi_tiempo_year, bi_tiempo_cuatrimestre
 GO
 
 /*VISTA 2*/
@@ -842,4 +845,8 @@ SELECT * FROM SQLeros.BI_MontoTotalDeCierreDeContratos				-- Vista 9
 	VALUES (3, '2023-12-02 00:00:00', '2024-01-02 00:00:00', 100, 'holachau1')
 
 	DELETE FROM SQLeros.PagoAlquiler WHERE pagoalq_descripcion_periodo = 'holachau1'
+
+	SELECT pagoalq_fecha, pagoalq_alquiler, pagoalq_importe FROM SQLeros.PagoAlquiler WHERE pagoalq_alquiler = 3
+	SELECT * FROM SQLeros.BI_PorcentajeIncrementoValorAlquiler
 */
+

@@ -675,7 +675,7 @@ SELECT TOP 5 bi_barrio_descripcion AS [Barrio],
 bi_rangoetario_descripcion AS [Rango etario],
 bi_tiempo_year AS [Año],
 bi_tiempo_cuatrimestre AS [Cuatrimestre],
-COUNT(*) AS [Cantidad] --Después borrar la cantidad
+SUM(bi_operacion_cantidad) AS [Cantidad] --Después borrar la cantidad
 FROM SQLeros.BI_Operacion
 JOIN SQLeros.BI_Ubicacion ON bi_ubicacion_codigo = bi_operacion_ubicacion_inmueble
 JOIN SQLeros.BI_Barrio ON bi_barrio_codigo = bi_ubicacion_barrio
@@ -684,7 +684,7 @@ JOIN SQLeros.BI_RangoEtario ON bi_rangoetario_codigo = bi_operacion_rangoetario_
 JOIN SQLeros.BI_TipoOperacion ON bi_tipooperacion_codigo = bi_operacion_tipo_operacion
 WHERE bi_tipooperacion_descripcion = 'Tipo Operación Alquiler Contrato' OR bi_tipooperacion_descripcion = 'Tipo Operación Alquiler Temporario'
 GROUP BY bi_barrio_codigo, bi_barrio_descripcion, bi_rangoetario_codigo, bi_rangoetario_descripcion, bi_tiempo_year, bi_tiempo_cuatrimestre
-ORDER BY COUNT(*) DESC
+ORDER BY SUM(bi_operacion_cantidad) DESC
 GO
 
 /*VISTA 4*/

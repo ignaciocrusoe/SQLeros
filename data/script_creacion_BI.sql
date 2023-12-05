@@ -520,12 +520,6 @@ BEGIN
 					  AND bi_tiempo_month = MONTH(pagoalq_fecha)
 					  AND bi_tiempo_year = YEAR(pagoalq_fecha))
 	UNION
-	SELECT distinct SQLeros.BI_ObtenerCuatrimestre(MONTH(pagoalq_fecha_inicio)), MONTH(pagoalq_fecha_inicio), YEAR(pagoalq_fecha_inicio) FROM SQLeros.PagoAlquiler
-	WHERE NOT EXISTS (SELECT bi_tiempo_cuatrimestre, bi_tiempo_month, bi_tiempo_year FROM SQLeros.BI_Tiempo
-					  WHERE bi_tiempo_cuatrimestre = SQLeros.BI_ObtenerCuatrimestre(MONTH(pagoalq_fecha_inicio))
-					  AND bi_tiempo_month = MONTH(pagoalq_fecha_inicio)
-					  AND bi_tiempo_year = YEAR(pagoalq_fecha_inicio))
-	UNION
 	SELECT distinct SQLeros.BI_ObtenerCuatrimestre(MONTH(pagoalq_vencimiento)), MONTH(pagoalq_vencimiento), YEAR(pagoalq_vencimiento) FROM SQLeros.PagoAlquiler
 	WHERE NOT EXISTS (SELECT bi_tiempo_cuatrimestre, bi_tiempo_month, bi_tiempo_year FROM SQLeros.BI_Tiempo
 					  WHERE bi_tiempo_cuatrimestre = SQLeros.BI_ObtenerCuatrimestre(MONTH(pagoalq_vencimiento))
@@ -543,7 +537,12 @@ BEGIN
 					  WHERE bi_tiempo_cuatrimestre = SQLeros.BI_ObtenerCuatrimestre(MONTH(venta_fecha))
 					  AND bi_tiempo_month = MONTH(venta_fecha)
 					  AND bi_tiempo_year = YEAR(venta_fecha))
-	-- Union demás fechas
+	UNION
+	SELECT distinct SQLeros.BI_ObtenerCuatrimestre(MONTH(alq_fecha_inicio)), MONTH(alq_fecha_inicio), YEAR(alq_fecha_inicio) FROM SQLeros.Alquiler
+	WHERE NOT EXISTS (SELECT bi_tiempo_cuatrimestre, bi_tiempo_month, bi_tiempo_year FROM SQLeros.BI_Tiempo
+					  WHERE bi_tiempo_cuatrimestre = SQLeros.BI_ObtenerCuatrimestre(MONTH(alq_fecha_inicio))
+					  AND bi_tiempo_month = MONTH(alq_fecha_inicio)
+					  AND bi_tiempo_year = YEAR(alq_fecha_inicio))
 END
 GO
 

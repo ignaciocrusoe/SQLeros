@@ -696,7 +696,7 @@ IF OBJECT_ID('SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler', 'V') IS NOT NUL
 	DROP VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler
 GO
 CREATE VIEW SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler AS
-SELECT SUM(bi_pagoalq_pagos_incumplidos) / SUM(bi_pagoalq_cantidad_pagos) AS [Porcentaje de incumplimiento de pagos],
+SELECT 100.0 * SUM(bi_pagoalq_pagos_incumplidos) / SUM(bi_pagoalq_cantidad_pagos) AS [Porcentaje de incumplimiento de pagos],
 bi_tiempo_year AS [Año],
 bi_tiempo_month AS [Month]
 FROM SQLeros.BI_PagoAlquiler
@@ -854,3 +854,15 @@ SELECT * FROM SQLeros.BI_MontoTotalDeCierreDeContratos				-- Vista 9
 	SELECT * FROM SQLeros.BI_PorcentajeIncrementoValorAlquiler
 */
 
+-- Prueba vista 4
+/*
+	INSERT INTO SQLeros.PagoAlquiler (pagoalq_alquiler, pagoalq_fecha, pagoalq_vencimiento, pagoalq_importe, pagoalq_descripcion_periodo)
+		VALUES (3, '2023-12-02 00:00:00', '2022-01-02 00:00:00', 100, 'holachau2')
+	INSERT INTO SQLeros.PagoAlquiler (pagoalq_alquiler, pagoalq_fecha, pagoalq_vencimiento, pagoalq_importe, pagoalq_descripcion_periodo)
+		VALUES (3, '2023-12-02 00:00:00', '2024-01-02 00:00:00', 100, 'holachau3')
+
+	DELETE FROM SQLeros.PagoAlquiler WHERE pagoalq_descripcion_periodo = 'holachau2'
+	DELETE FROM SQLeros.PagoAlquiler WHERE pagoalq_descripcion_periodo = 'holachau3'
+
+	SELECT * FROM SQLeros.BI_PorcentajeIncumpliemientoPagoAlquiler
+*/

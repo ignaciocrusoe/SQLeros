@@ -686,6 +686,7 @@ WHERE bi_tipooperacion_descripcion = 'Tipo Operación Alquiler Contrato' OR bi_ti
 GROUP BY bi_barrio_codigo, bi_barrio_descripcion, bi_rangoetario_codigo, bi_rangoetario_descripcion, bi_tiempo_year, bi_tiempo_cuatrimestre
 ORDER BY COUNT(*) DESC
 GO
+
 /*VISTA 4*/
 -- Nota: Esta vista esta vacía dado que no hay datos que cumplan la condicion.
 -- SELECT * FROM SQLeros.PagoAlquiler WHERE pagoalq_fecha > pagoalq_vencimiento
@@ -699,7 +700,7 @@ SELECT SUM(bi_pagoalq_pagos_incumplidos) / SUM(bi_pagoalq_cantidad_pagos) AS [Po
 bi_tiempo_year AS [Año],
 bi_tiempo_month AS [Month]
 FROM SQLeros.BI_PagoAlquiler
-JOIN SQLeros.BI_Tiempo ON YEAR(bi_pagoalq_tiempo) = bi_tiempo_year AND MONTH(bi_pagoalq_tiempo) = bi_tiempo_month
+	JOIN SQLeros.BI_Tiempo ON bi_pagoalq_tiempo = bi_tiempo_codigo
 GROUP BY bi_tiempo_year, bi_tiempo_month
 GO
 

@@ -654,13 +654,16 @@ SELECT SUM(bi_anu_precio_total) / SUM(bi_anu_cantidad) AS [Precio promedio],
 bi_tipooperacion_descripcion AS [Tipo de operación],
 bi_tipoinmueble_descripcion AS [Tipo de inmueble],
 bi_rangom2_descripcion AS [Rango M2],
-bi_moneda_nombre AS [Moneda]
+bi_moneda_nombre AS [Moneda],
+bi_tiempo_year AS [Año],
+bi_tiempo_cuatrimestre AS [Cuatrimestre]
 FROM SQLeros.BI_Anuncio
 JOIN SQLeros.BI_TipoOperacion ON bi_tipooperacion_codigo = bi_anu_tipo_op
 JOIN SQLeros.BI_TipoInmueble ON bi_tipoinmueble_codigo = bi_anu_tipo_inmueble
 JOIN SQLeros.BI_RangoM2 ON bi_rangom2_codigo = bi_anu_rangom2
 JOIN SQLeros.BI_TipoMoneda ON bi_moneda_codigo = bi_anu_tipo_moneda
-GROUP BY bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_tipoinmueble_codigo, bi_tipoinmueble_descripcion, bi_rangom2_codigo, bi_rangom2_descripcion, bi_moneda_codigo, bi_moneda_nombre
+JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_anu_tiempo_pub
+GROUP BY bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_tipoinmueble_codigo, bi_tipoinmueble_descripcion, bi_rangom2_codigo, bi_rangom2_descripcion, bi_moneda_codigo, bi_moneda_nombre, bi_tiempo_year, bi_tiempo_cuatrimestre
 GO
 
 /*VISTA 3*/

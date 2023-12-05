@@ -630,7 +630,7 @@ IF OBJECT_ID('SQLeros.BI_DuracionPromedioDeAnuncios', 'V') IS NOT NULL
 	DROP VIEW SQLeros.BI_DuracionPromedioDeAnuncios
 GO
 CREATE VIEW SQLeros.BI_DuracionPromedioDeAnuncios AS
-SELECT SUM(bi_anu_duracion_total) / SUM(bi_anu_cantidad) AS [Duración promedio en días],
+SELECT 1.0 * SUM(bi_anu_duracion_total) / SUM(bi_anu_cantidad) AS [Duración promedio en días],
 bi_tipooperacion_descripcion AS [Tipo de operación],
 bi_barrio_descripcion AS [Barrio],
 bi_ambientes_cantidad AS [Ambientes],
@@ -642,7 +642,7 @@ FROM SQLeros.BI_Anuncio
 	JOIN SQLeros.BI_Barrio ON bi_barrio_codigo = bi_ubicacion_barrio
 	JOIN SQLeros.BI_Ambientes ON bi_ambientes_codigo = bi_anu_ambientes
 	JOIN SQLeros.BI_Tiempo ON bi_tiempo_codigo = bi_anu_tiempo_pub
-GROUP BY bi_anu_duracion_total, bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_barrio_codigo, bi_barrio_descripcion, bi_ambientes_codigo, bi_ambientes_cantidad, bi_tiempo_year, bi_tiempo_cuatrimestre
+GROUP BY bi_tipooperacion_codigo, bi_tipooperacion_descripcion, bi_barrio_codigo, bi_barrio_descripcion, bi_ambientes_codigo, bi_ambientes_cantidad, bi_tiempo_year, bi_tiempo_cuatrimestre
 GO
 
 /*VISTA 2*/

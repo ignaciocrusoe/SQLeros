@@ -1,6 +1,9 @@
-# SQLeros
-[Segunda Estrategia](https://docs.google.com/document/d/1BMOj6FRZ_U0V7nN6IQMm9urdpKX5UOOV8SgKXuFxeNQ/edit?usp=sharing)
+# Modelo de Datos Relacional y Migración
+## Grupo 8: SQLeros
+### Integrantes:
+* Crusoe, Ignacio - 2035303
+* Diaz, Tomás - 2132606
+* Davrieux, Maximo - 2035467  
+* Vargas Fernandez, Juan Pablo - 2041376  
 
-![DER](Entrega_2_MIGRACION/DER-GDD-CORRECCION.jpg)
-
-Creo que tenemos que juntar venta y alquiler en una tabla y que tipoOperacion sea una dimensión.
+Mail del representante del grupo : icrusoe@frba.utn.edu.ar
